@@ -4,5 +4,6 @@ dist/
 work/
 reports/*.json
 reports/*.md
+!reports/README.md
 *.pyc
 __pycache__/
