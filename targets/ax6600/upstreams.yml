@@ -1,65 +1,60 @@
 version: 1
-
 repositories:
   source-primary:
-    role: "primary-source"
-    repo: "YOUR_GITHUB_USER/ax6600-source"
-    branch: "ax6600-stable"
-    enabled: false
-    note: "Replace this placeholder after creating your dedicated source repository."
-
+    role: primary-source
+    repo: zhyzhaogit/ax6600-source
+    branch: ax6600-stable
+    enabled: true
+    note: Personal source repository configured by bootstrap_identity.py. Keep this
+      in sync with your actual GitHub repository names.
   source-upstream:
-    role: "upstream-source"
-    repo: "ones20250/immortalwrt_ipq"
-    branch: "main"
+    role: upstream-source
+    repo: ones20250/immortalwrt_ipq
+    branch: main
     enabled: true
-
   reference-device-repo:
-    role: "reference-device"
-    repo: "ones20250/Openwrt-AX6600"
-    branch: "main"
+    role: reference-device
+    repo: ones20250/Openwrt-AX6600
+    branch: main
     enabled: true
     watched_paths:
-      - "README.md"
-      - ".github/workflows/QCA-ALL.yml"
-      - "Scripts/Packages.sh"
-      - "Scripts/Settings.sh"
-      - "Config/IPQ60XX-WIFI-YES.txt"
-
+    - README.md
+    - .github/workflows/QCA-ALL.yml
+    - Scripts/Packages.sh
+    - Scripts/Settings.sh
+    - Config/IPQ60XX-WIFI-YES.txt
   reference-structure-repo:
-    role: "reference-structure"
-    repo: "ZqinKing/wrt_release"
-    branch: "main"
+    role: reference-structure
+    repo: ZqinKing/wrt_release
+    branch: main
     enabled: true
     watched_paths:
-      - "README.md"
-      - ".github/workflows/build_wrt.yml"
-      - "wrt_core/pre_clone_action.sh"
-      - "wrt_core/compilecfg/jdcloud_ipq60xx_immwrt.ini"
-
+    - README.md
+    - .github/workflows/build_wrt.yml
+    - wrt_core/pre_clone_action.sh
+    - wrt_core/compilecfg/jdcloud_ipq60xx_immwrt.ini
   fallback-upstream:
-    role: "fallback-source"
-    repo: "immortalwrt/immortalwrt"
-    branch: "master"
+    role: fallback-source
+    repo: immortalwrt/immortalwrt
+    branch: master
     enabled: true
-
 policy:
   default_compare_targets:
-    - "reference-device-repo"
-    - "reference-structure-repo"
+  - reference-device-repo
+  - reference-structure-repo
   protected_keywords:
-    - "bootloader"
-    - "partition"
-    - "uboot"
-    - "gpt"
+  - bootloader
+  - partition
+  - uboot
+  - gpt
   allowed_absorption_paths:
     config:
-      - "Config/"
-      - "Scripts/Settings.sh"
-      - "Scripts/Packages.sh"
+    - Config/
+    - Scripts/Settings.sh
+    - Scripts/Packages.sh
     workflows:
-      - ".github/workflows/"
+    - .github/workflows/
     source_patches:
-      - "target/"
-      - "package/"
-      - "feeds/"
+    - target/
+    - package/
+    - feeds/
