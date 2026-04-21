@@ -25,12 +25,19 @@ def main() -> int:
     for name, feature in policy["features"].items():
         level = feature["level"]
         config_markers = feature.get("config_markers", [])
+        config_marker_groups = feature.get("config_marker_groups", [])
         repo_markers = feature.get("repo_markers", [])
 
         missing_config = [marker for marker in config_markers if marker not in config_text]
+        missing_config_groups = []
+        for group in config_marker_groups:
+            any_of = group.get("any_of", [])
+            if not any(marker in config_text for marker in any_of):
+                label = group.get("description") or " / ".join(any_of)
+                missing_config_groups.append(f"{label}: one of {', '.join(any_of)}")
         missing_repo = [marker for marker in repo_markers if not (REPO_ROOT / marker).exists()]
 
-        if missing_config or missing_repo:
+        if missing_config or missing_config_groups or missing_repo:
             status = "fail" if level == "required" else "warn"
         else:
             status = "pass"
@@ -41,6 +48,8 @@ def main() -> int:
         evidence = []
         if missing_config:
             evidence.append("missing config: " + ", ".join(missing_config))
+        if missing_config_groups:
+            evidence.append("missing config groups: " + "; ".join(missing_config_groups))
         if missing_repo:
             evidence.append("missing repo: " + ", ".join(missing_repo))
         if not evidence:
@@ -60,6 +69,9 @@ def main() -> int:
 
     if failures:
         print("Missing required features:", ", ".join(failures))
+        for row in rows:
+            if row[2] == "fail":
+                print(f"- {row[0]} -> {row[3]}")
         return 1
 
     return 0

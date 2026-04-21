@@ -117,6 +117,17 @@ jobs:
             --config build/ax6600/final.config \
             --output reports/required-features-build.md
 
+      - name: Upload defconfig debug snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ax6600-defconfig-${{ github.run_number }}
+          path: |
+            build/ax6600/.config
+            build/ax6600/final.config
+            reports/required-features-build.md
+          if-no-files-found: warn
+
       - name: Download sources
         run: |
           pushd work/source

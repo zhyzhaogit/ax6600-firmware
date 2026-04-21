@@ -8,14 +8,20 @@ features:
       - "CONFIG_TARGET_qualcommax=y"
       - "CONFIG_TARGET_qualcommax_ipq60xx=y"
       - "CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y"
-      - "CONFIG_NSS_FIRMWARE_VERSION_12_5=y"
+      - "CONFIG_ATH11K_NSS_SUPPORT=y"
+      - "CONFIG_PACKAGE_MAC80211_NSS_SUPPORT=y"
+      - "CONFIG_NSS_FIRMWARE_VERSION_11_4=y"
 
   network_tuning:
     level: "required"
     description: "Base builds must include low-risk networking improvements."
     config_markers:
       - "CONFIG_PACKAGE_irqbalance=y"
-      - "CONFIG_PACKAGE_ethtool=y"
+    config_marker_groups:
+      - description: "ethtool userland utility"
+        any_of:
+          - "CONFIG_PACKAGE_ethtool=y"
+          - "CONFIG_PACKAGE_ethtool-full=y"
     repo_markers:
       - "scripts/prepare_source_tree.sh"
 
