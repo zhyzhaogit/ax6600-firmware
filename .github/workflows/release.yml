@@ -17,6 +17,15 @@ on:
         description: "Comma-separated optional profile keys"
         required: false
         default: ""
+      replace_default_optional_profiles:
+        description: "Ignore manifest default optional profiles"
+        required: false
+        type: boolean
+        default: false
+      package_overrides:
+        description: "Whitespace/comma/newline separated package overrides. Use -pkg to disable."
+        required: false
+        default: ""
       patch_set_version:
         description: "Patch set version string"
         required: false
@@ -50,10 +59,21 @@ jobs:
 
       - name: Assemble config
         run: |
+          EXTRA_ARGS=""
+          if [ "${{ inputs.replace_default_optional_profiles }}" = "true" ]; then
+            EXTRA_ARGS="--replace-default-optional-profiles"
+          fi
           python scripts/assemble_config.py \
             --manifest targets/ax6600/manifest.yml \
             --optional-profiles "${{ inputs.optional_profiles }}" \
-            --output build/ax6600/.config
+            --output build/ax6600/.config \
+            ${EXTRA_ARGS}
+
+      - name: Apply package overrides
+        run: |
+          python scripts/apply_package_overrides.py \
+            --config build/ax6600/.config \
+            --overrides "${{ inputs.package_overrides }}"
 
       - name: Validate required features
         run: |
@@ -72,6 +92,10 @@ jobs:
 
       - name: Render release metadata
         run: |
+          EXTRA_ARGS=""
+          if [ "${{ inputs.replace_default_optional_profiles }}" = "true" ]; then
+            EXTRA_ARGS="--replace-default-optional-profiles"
+          fi
           python scripts/render_release_metadata.py \
             --manifest targets/ax6600/manifest.yml \
             --compat targets/ax6600/compat-matrix.yml \
@@ -81,6 +105,7 @@ jobs:
             --source-commit "${{ inputs.source_commit }}" \
             --optional-profiles "${{ inputs.optional_profiles }}" \
             --patch-set-version "${{ inputs.patch_set_version }}" \
+            ${EXTRA_ARGS} \
             --output-json dist/release/release-metadata.json \
             --output-md dist/release/release-metadata.md
 

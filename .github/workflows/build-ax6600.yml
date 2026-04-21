@@ -1,6 +1,9 @@
-name: Canary Build
+name: Build AX6600 Firmware
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       source_key:
@@ -8,7 +11,7 @@ on:
         required: false
         default: "source-upstream"
       optional_profiles:
-        description: "Comma-separated optional profile keys"
+        description: "Extra optional profiles to add"
         required: false
         default: ""
       replace_default_optional_profiles:
@@ -20,20 +23,29 @@ on:
         description: "Whitespace/comma/newline separated package overrides. Use -pkg to disable."
         required: false
         default: ""
-      run_defconfig:
-        description: "Clone source, prepare feeds, and run make defconfig"
-        required: false
-        type: boolean
-        default: true
 
 permissions:
   contents: read
 
 jobs:
-  canary:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
 
     steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+          docker system prune -af || true
+
+      - name: Build environment setup
+        run: |
+          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          sudo -E apt -yqq install libfuse-dev
+          sudo -E apt -yqq autoremove --purge
+          sudo -E apt -yqq autoclean
+          sudo -E apt -yqq clean
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -64,7 +76,6 @@ jobs:
             --overrides "${{ inputs.package_overrides }}"
 
       - name: Resolve source repository
-        id: resolve-source
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -77,29 +88,20 @@ jobs:
           if requested == "source-primary" and not entry.get("enabled", False):
               entry = upstreams["repositories"][manifest["source_selection"]["bootstrap_upstream"]]
               requested = manifest["source_selection"]["bootstrap_upstream"]
-          with Path(Path.cwd() / "source.env").open("w", encoding="utf-8") as handle:
+          with Path("source.env").open("w", encoding="utf-8") as handle:
               handle.write(f"SOURCE_KEY={requested}\n")
               handle.write(f"SOURCE_REPO={entry['repo']}\n")
               handle.write(f"SOURCE_BRANCH={entry['branch']}\n")
           PY
           cat source.env >> "$GITHUB_ENV"
 
-      - name: Validate required feature markers in assembled config
-        run: |
-          python scripts/check_required_features.py \
-            --policy targets/ax6600/feature-policy.yml \
-            --config build/ax6600/.config \
-            --output reports/required-features-prep.md
-
       - name: Clone and prepare source tree
-        if: inputs.run_defconfig == true
         run: |
           git clone --depth 1 --branch "${SOURCE_BRANCH}" "https://github.com/${SOURCE_REPO}.git" work/source
           bash scripts/prepare_source_tree.sh work/source feeds/custom.conf patches/firmware-layer
           cp build/ax6600/.config work/source/.config
 
-      - name: Run defconfig
-        if: inputs.run_defconfig == true
+      - name: Update feeds and defconfig
         run: |
           pushd work/source
           ./scripts/feeds update -a
@@ -107,19 +109,30 @@ jobs:
           make defconfig
           popd
           cp work/source/.config build/ax6600/final.config
-          diff -u build/ax6600/.config build/ax6600/final.config > reports/config.diff || true
 
-      - name: Validate required feature markers after defconfig
-        if: inputs.run_defconfig == true
+      - name: Validate required features
         run: |
           python scripts/check_required_features.py \
             --policy targets/ax6600/feature-policy.yml \
             --config build/ax6600/final.config \
-            --output reports/required-features.md
+            --output reports/required-features-build.md
 
-      - name: Render release metadata
+      - name: Download sources
         run: |
-          SOURCE_COMMIT="$(git -C work/source rev-parse HEAD 2>/dev/null || echo bootstrap-pending)"
+          pushd work/source
+          make download -j8
+          popd
+
+      - name: Build firmware
+        run: |
+          pushd work/source
+          make -j"$(nproc)" || make -j1 V=s
+          popd
+
+      - name: Collect firmware artifacts
+        run: |
+          bash scripts/collect_firmware_artifacts.sh work/source dist/firmware
+          SOURCE_COMMIT="$(git -C work/source rev-parse HEAD)"
           EXTRA_ARGS=""
           if [ "${{ inputs.replace_default_optional_profiles }}" = "true" ]; then
             EXTRA_ARGS="--replace-default-optional-profiles"
@@ -137,15 +150,15 @@ jobs:
             --output-json dist/release/release-metadata.json \
             --output-md dist/release/release-metadata.md
 
-      - name: Upload canary artifacts
+      - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: canary-artifacts
+          name: ax6600-firmware-${{ github.run_number }}
           path: |
-            build/ax6600/.config
-            build/ax6600/final.config
-            reports/config.diff
-            reports/required-features-prep.md
-            reports/required-features.md
+            dist/firmware/factory/**
+            dist/firmware/sysupgrade/**
+            dist/firmware/meta/**
             dist/release/release-metadata.json
             dist/release/release-metadata.md
+            build/ax6600/final.config
+            reports/required-features-build.md

@@ -26,6 +26,21 @@ This repository is designed so future AI runs can make good decisions without re
 6. Update benchmark metrics after real-device validation.
 7. Release only from validated source and metrics.
 
+## Package Customization
+
+Default builds include the manifest's `release.default_optional_profiles`.
+
+For one-off workflow changes, use package overrides:
+
+- `foo` or `+foo`: enable `CONFIG_PACKAGE_foo=y`
+- `-foo` or `!foo`: disable `CONFIG_PACKAGE_foo`
+
+Examples:
+
+- `luci-app-ddns-go`
+- `-luci-app-passwall`
+- `+luci-app-openclash`
+
 ## Rules For AI
 
 - Do not absorb changes from reference repositories wholesale.

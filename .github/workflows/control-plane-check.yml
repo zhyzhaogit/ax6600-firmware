@@ -43,6 +43,7 @@ jobs:
           python -m py_compile \
             scripts/common.py \
             scripts/assemble_config.py \
+            scripts/apply_package_overrides.py \
             scripts/check_required_features.py \
             scripts/check_baseline.py \
             scripts/sync_watch.py \
@@ -56,6 +57,12 @@ jobs:
           python scripts/assemble_config.py \
             --manifest targets/ax6600/manifest.yml \
             --output build/ax6600/.config
+
+      - name: Apply sample package override
+        run: |
+          python scripts/apply_package_overrides.py \
+            --config build/ax6600/.config \
+            --overrides "luci-app-openclash zram-swap"
 
       - name: Validate required features
         run: |

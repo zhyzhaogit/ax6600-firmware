@@ -27,6 +27,7 @@ features:
     repo_markers:
       - "feeds/custom.conf"
       - "config/ax6600/40-optional-profiles/services.config"
+      - "config/ax6600/40-optional-profiles/memory-boost.config"
       - "config/ax6600/40-optional-profiles/proxy-stack.config"
 
   scheduled_updates:

@@ -40,3 +40,22 @@ It does not own upstream source history. That lives in `ax6600-source`.
 2. `config-diff` classifies reference repository changes into absorbable or review-only buckets.
 3. `canary-build` validates config assembly, required features, and source-tree preparation.
 4. `release` is allowed only after required features and benchmark policy pass.
+
+## Default Package Direction
+
+The default assembled profile now includes:
+
+- `services`
+- `memory-boost`
+- `proxy-stack`
+
+That means the baseline release path is aimed at an opinionated AX6600 image with:
+
+- `zram-swap`
+- `luci-app-openclash`
+- `luci-app-homeproxy`
+- `luci-app-passwall`
+- `smartdns`
+- `mosdns`
+
+You can still add or remove packages at build time through workflow inputs.

@@ -15,6 +15,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-branch", required=True)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--optional-profiles", default="")
+    parser.add_argument(
+        "--replace-default-optional-profiles",
+        action="store_true",
+        help="Do not include manifest release.default_optional_profiles in the reported profile set.",
+    )
     parser.add_argument("--patch-set-version", default="firmware-layer-v1")
     parser.add_argument("--output-json", default="dist/release/release-metadata.json")
     parser.add_argument("--output-md", default="dist/release/release-metadata.md")
@@ -27,6 +32,13 @@ def main() -> int:
     compat = load_yaml(REPO_ROOT / args.compat)
     policy = load_yaml(REPO_ROOT / args.policy)
     selected_profiles = [item.strip() for item in args.optional_profiles.split(",") if item.strip()]
+    default_profiles = [] if args.replace_default_optional_profiles else list(
+        manifest.get("release", {}).get("default_optional_profiles", [])
+    )
+    merged_profiles = list(default_profiles)
+    for item in selected_profiles:
+        if item not in merged_profiles:
+            merged_profiles.append(item)
 
     metadata = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -40,7 +52,7 @@ def main() -> int:
         "release": manifest["release"],
         "network_defaults": manifest["network_defaults"],
         "config_profile": manifest["device"]["config_profile"],
-        "optional_profiles": selected_profiles,
+        "optional_profiles": merged_profiles,
         "patch_set_version": args.patch_set_version,
         "required_features": sorted(
             name for name, feature in policy["features"].items() if feature["level"] == "required"
@@ -57,7 +69,7 @@ def main() -> int:
             f"- source: `{args.source_repo}` @ `{args.source_branch}`",
             f"- source commit: `{args.source_commit}`",
             f"- config profile: `{metadata['config_profile']}`",
-            f"- optional profiles: `{', '.join(selected_profiles) if selected_profiles else 'none'}`",
+            f"- optional profiles: `{', '.join(merged_profiles) if merged_profiles else 'none'}`",
             f"- patch set version: `{args.patch_set_version}`",
             f"- known-good reference: `{metadata['known_good_reference']}`",
             "",
