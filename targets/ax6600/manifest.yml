@@ -1,0 +1,50 @@
+version: 1
+target: ax6600
+
+device:
+  marketing_name: "JDCloud RE-CS-02 / AX6600"
+  model_aliases:
+    - "RE-CS-02"
+    - "AX6600"
+    - "jdcloud_re-cs-02"
+  openwrt_target: "qualcommax/ipq60xx"
+  config_profile: "IPQ60XX-WIFI-YES"
+  target_device: "jdcloud_re-cs-02"
+
+release:
+  channel: "stable"
+  name_prefix: "ax6600"
+  timezone: "Asia/Shanghai"
+
+network_defaults:
+  lan_ip: "192.168.10.1"
+  ssid: "AX6600"
+  wifi_password_hint: "set-after-flash"
+  theme: "bootstrap"
+
+source_selection:
+  preferred_upstream: "source-primary"
+  bootstrap_upstream: "source-upstream"
+  fallback_upstream: "fallback-upstream"
+  preferred_branch: "ax6600-stable"
+
+config_fragments:
+  base:
+    - "config/ax6600/00-target.config"
+    - "config/ax6600/10-nss.config"
+    - "config/ax6600/20-network-tuning.config"
+    - "config/ax6600/30-core-packages.config"
+  optional_profiles:
+    services: "config/ax6600/40-optional-profiles/services.config"
+    proxy-stack: "config/ax6600/40-optional-profiles/proxy-stack.config"
+
+feeds_files:
+  - "feeds/custom.conf"
+
+patch_sets:
+  firmware_layer: "patches/firmware-layer"
+
+artifacts:
+  assembled_config: "build/ax6600/.config"
+  report_dir: "reports"
+  release_dir: "dist/release"

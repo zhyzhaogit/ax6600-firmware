@@ -1,0 +1,11 @@
+performance_targets:
+  nat_throughput_mbps: 1820
+  lan_wan_forwarding_mbps: 1795
+  cpu_busy_percent_at_1g_nat: 58
+  boot_to_lan_seconds: 74
+
+resource_thresholds:
+  base_firmware_flash_mb: 46
+  idle_memory_used_mb: 188
+  services_profile_idle_memory_used_mb: 274
+  proxy_profile_idle_memory_used_mb: 361

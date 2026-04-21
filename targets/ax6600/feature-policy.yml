@@ -1,0 +1,48 @@
+version: 1
+
+features:
+  nss_full_support:
+    level: "required"
+    description: "AX6600 releases must keep NSS-enabled hardware acceleration on the supported IPQ60xx target."
+    config_markers:
+      - "CONFIG_TARGET_qualcommax=y"
+      - "CONFIG_TARGET_qualcommax_ipq60xx=y"
+      - "CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y"
+      - "CONFIG_NSS_FIRMWARE_VERSION_12_5=y"
+
+  network_tuning:
+    level: "required"
+    description: "Base builds must include low-risk networking improvements."
+    config_markers:
+      - "CONFIG_PACKAGE_irqbalance=y"
+      - "CONFIG_PACKAGE_ethtool=y"
+    repo_markers:
+      - "scripts/prepare_source_tree.sh"
+
+  plugin_customization:
+    level: "required"
+    description: "The repository must keep package tiering and custom feeds available."
+    config_markers:
+      - "CONFIG_PACKAGE_luci=y"
+    repo_markers:
+      - "feeds/custom.conf"
+      - "config/ax6600/40-optional-profiles/services.config"
+      - "config/ax6600/40-optional-profiles/proxy-stack.config"
+
+  scheduled_updates:
+    level: "required"
+    description: "The repository must keep scheduled detection of upstream movement."
+    repo_markers:
+      - ".github/workflows/sync-watch.yml"
+      - ".github/workflows/config-diff.yml"
+
+  release_transparency:
+    level: "required"
+    description: "Release metadata must expose source and config provenance."
+    repo_markers:
+      - ".github/workflows/release.yml"
+      - "scripts/render_release_metadata.py"
+
+  latest_version:
+    level: "best_effort_without_regressing_required_features"
+    description: "Track the newest viable source while preserving required performance and stability traits."

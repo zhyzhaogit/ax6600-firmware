@@ -1,0 +1,126 @@
+name: Canary Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_key:
+        description: "Key from targets/ax6600/upstreams.yml"
+        required: false
+        default: "source-upstream"
+      optional_profiles:
+        description: "Comma-separated optional profile keys"
+        required: false
+        default: ""
+      run_defconfig:
+        description: "Clone source, prepare feeds, and run make defconfig"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install script dependencies
+        run: python -m pip install --upgrade pip -r scripts/requirements.txt
+
+      - name: Assemble config
+        run: |
+          python scripts/assemble_config.py \
+            --manifest targets/ax6600/manifest.yml \
+            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --output build/ax6600/.config
+
+      - name: Resolve source repository
+        id: resolve-source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          manifest = yaml.safe_load(Path("targets/ax6600/manifest.yml").read_text(encoding="utf-8"))
+          upstreams = yaml.safe_load(Path("targets/ax6600/upstreams.yml").read_text(encoding="utf-8"))
+          requested = "${{ inputs.source_key }}" or manifest["source_selection"]["bootstrap_upstream"]
+          entry = upstreams["repositories"].get(requested) or upstreams["repositories"][manifest["source_selection"]["bootstrap_upstream"]]
+          if requested == "source-primary" and not entry.get("enabled", False):
+              entry = upstreams["repositories"][manifest["source_selection"]["bootstrap_upstream"]]
+              requested = manifest["source_selection"]["bootstrap_upstream"]
+          with Path(Path.cwd() / "source.env").open("w", encoding="utf-8") as handle:
+              handle.write(f"SOURCE_KEY={requested}\n")
+              handle.write(f"SOURCE_REPO={entry['repo']}\n")
+              handle.write(f"SOURCE_BRANCH={entry['branch']}\n")
+          PY
+          cat source.env >> "$GITHUB_ENV"
+
+      - name: Validate required feature markers in assembled config
+        run: |
+          python scripts/check_required_features.py \
+            --policy targets/ax6600/feature-policy.yml \
+            --config build/ax6600/.config \
+            --output reports/required-features-prep.md
+
+      - name: Clone and prepare source tree
+        if: inputs.run_defconfig == true
+        run: |
+          git clone --depth 1 --branch "${SOURCE_BRANCH}" "https://github.com/${SOURCE_REPO}.git" work/source
+          bash scripts/prepare_source_tree.sh work/source feeds/custom.conf patches/firmware-layer
+          cp build/ax6600/.config work/source/.config
+
+      - name: Run defconfig
+        if: inputs.run_defconfig == true
+        run: |
+          pushd work/source
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make defconfig
+          popd
+          cp work/source/.config build/ax6600/final.config
+          diff -u build/ax6600/.config build/ax6600/final.config > reports/config.diff || true
+
+      - name: Validate required feature markers after defconfig
+        if: inputs.run_defconfig == true
+        run: |
+          python scripts/check_required_features.py \
+            --policy targets/ax6600/feature-policy.yml \
+            --config build/ax6600/final.config \
+            --output reports/required-features.md
+
+      - name: Render release metadata
+        run: |
+          SOURCE_COMMIT="$(git -C work/source rev-parse HEAD 2>/dev/null || echo bootstrap-pending)"
+          python scripts/render_release_metadata.py \
+            --manifest targets/ax6600/manifest.yml \
+            --compat targets/ax6600/compat-matrix.yml \
+            --policy targets/ax6600/feature-policy.yml \
+            --source-repo "${SOURCE_REPO}" \
+            --source-branch "${SOURCE_BRANCH}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --patch-set-version firmware-layer-v1 \
+            --output-json dist/release/release-metadata.json \
+            --output-md dist/release/release-metadata.md
+
+      - name: Upload canary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary-artifacts
+          path: |
+            build/ax6600/.config
+            build/ax6600/final.config
+            reports/config.diff
+            reports/required-features-prep.md
+            reports/required-features.md
+            dist/release/release-metadata.json
+            dist/release/release-metadata.md

@@ -1,0 +1,62 @@
+name: Config Diff
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "43 2 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  config-diff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install script dependencies
+        run: python -m pip install --upgrade pip -r scripts/requirements.txt
+
+      - name: Generate config diff report
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/config_diff.py \
+            --upstreams targets/ax6600/upstreams.yml \
+            --state reports/reference-state.json \
+            --output reports/config-diff.md
+
+      - name: Create review PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: "bot/config-diff"
+          title: "chore: refresh reference diff state"
+          body: |
+            This PR refreshes the reference-state cache and the config/workflow classification report.
+
+            Review the classifications before absorbing any reference changes.
+          commit-message: |
+            Refresh reference diff state
+
+            Constraint: Reference repositories must not be copied wholesale
+            Confidence: medium
+            Scope-risk: narrow
+            Directive: Review blocked and ai-review items manually before adoption
+            Tested: Reference snapshot and classification generation
+            Not-tested: Actual absorption into source or firmware layers
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-diff-report
+          path: |
+            reports/config-diff.md
+            reports/reference-state.json

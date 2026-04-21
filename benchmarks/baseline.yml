@@ -1,0 +1,44 @@
+version: 1
+
+baseline_profile:
+  device: "JDCloud RE-CS-02 / AX6600"
+  source_profile: "IPQ60XX-WIFI-YES"
+
+performance_targets:
+  nat_throughput_mbps:
+    minimum: 1500
+    preferred: 1800
+    note: "Update with measured numbers after the first validated release."
+  lan_wan_forwarding_mbps:
+    minimum: 1500
+    preferred: 1800
+  cpu_busy_percent_at_1g_nat:
+    maximum: 65
+  boot_to_lan_seconds:
+    maximum: 120
+
+resource_thresholds:
+  base_firmware_flash_mb:
+    maximum: 64
+  idle_memory_used_mb:
+    maximum: 256
+  services_profile_idle_memory_used_mb:
+    maximum: 320
+  proxy_profile_idle_memory_used_mb:
+    maximum: 420
+
+stability_checks:
+  wifi:
+    - "2.4 GHz remains visible after reboot"
+    - "5 GHz remains visible after reboot"
+    - "Wireless config survives sysupgrade keep-settings path"
+  upgrade:
+    - "sysupgrade succeeds from the previous stable build"
+    - "first boot completes with LuCI reachable"
+    - "factory image hash is recorded in release metadata"
+  rollback:
+    - "fallback image can be restored from U-Boot if the upgrade fails"
+
+validation_policy:
+  allow_release_with_pending_runtime_checks: false
+  fail_on_missing_metrics: true

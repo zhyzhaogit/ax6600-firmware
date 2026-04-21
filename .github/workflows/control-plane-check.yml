@@ -1,0 +1,81 @@
+name: Control Plane Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip -r scripts/requirements.txt
+
+      - name: Parse YAML files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          files = list(Path(".").rglob("*.yml")) + list(Path(".").rglob("*.yaml"))
+          for file in files:
+              yaml.safe_load(file.read_text(encoding="utf-8"))
+          print(f"parsed {len(files)} yaml files")
+          PY
+
+      - name: Compile helper scripts
+        run: |
+          python -m py_compile \
+            scripts/common.py \
+            scripts/assemble_config.py \
+            scripts/check_required_features.py \
+            scripts/check_baseline.py \
+            scripts/sync_watch.py \
+            scripts/config_diff.py \
+            scripts/render_release_metadata.py \
+            scripts/bootstrap_identity.py \
+            scripts/refresh_compat_matrix.py
+
+      - name: Assemble baseline config
+        run: |
+          python scripts/assemble_config.py \
+            --manifest targets/ax6600/manifest.yml \
+            --output build/ax6600/.config
+
+      - name: Validate required features
+        run: |
+          python scripts/check_required_features.py \
+            --policy targets/ax6600/feature-policy.yml \
+            --config build/ax6600/.config \
+            --output reports/required-features-ci.md
+
+      - name: Validate baseline example metrics
+        run: |
+          python scripts/check_baseline.py \
+            --baseline benchmarks/baseline.yml \
+            --metrics benchmarks/runtime-metrics.example.yml \
+            --output reports/baseline-ci.md
+
+      - name: Upload validation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-plane-check
+          path: |
+            build/ax6600/.config
+            reports/required-features-ci.md
+            reports/baseline-ci.md

@@ -1,0 +1,98 @@
+name: Release Metadata Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: "Source repository in owner/name form"
+        required: true
+      source_branch:
+        description: "Source branch"
+        required: true
+        default: "ax6600-stable"
+      source_commit:
+        description: "Source commit SHA"
+        required: true
+      optional_profiles:
+        description: "Comma-separated optional profile keys"
+        required: false
+        default: ""
+      patch_set_version:
+        description: "Patch set version string"
+        required: false
+        default: "firmware-layer-v1"
+      metrics_path:
+        description: "Path to measured runtime metrics YAML or JSON"
+        required: false
+        default: "benchmarks/runtime-metrics.yml"
+      release_tag:
+        description: "Release tag"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install script dependencies
+        run: python -m pip install --upgrade pip -r scripts/requirements.txt
+
+      - name: Assemble config
+        run: |
+          python scripts/assemble_config.py \
+            --manifest targets/ax6600/manifest.yml \
+            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --output build/ax6600/.config
+
+      - name: Validate required features
+        run: |
+          python scripts/check_required_features.py \
+            --policy targets/ax6600/feature-policy.yml \
+            --config build/ax6600/.config \
+            --output reports/required-features-release.md
+
+      - name: Validate benchmark baseline
+        run: |
+          test -f "${{ inputs.metrics_path }}"
+          python scripts/check_baseline.py \
+            --baseline benchmarks/baseline.yml \
+            --metrics "${{ inputs.metrics_path }}" \
+            --output reports/baseline-release.md
+
+      - name: Render release metadata
+        run: |
+          python scripts/render_release_metadata.py \
+            --manifest targets/ax6600/manifest.yml \
+            --compat targets/ax6600/compat-matrix.yml \
+            --policy targets/ax6600/feature-policy.yml \
+            --source-repo "${{ inputs.source_repo }}" \
+            --source-branch "${{ inputs.source_branch }}" \
+            --source-commit "${{ inputs.source_commit }}" \
+            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --patch-set-version "${{ inputs.patch_set_version }}" \
+            --output-json dist/release/release-metadata.json \
+            --output-md dist/release/release-metadata.md
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_tag }}
+          body_path: dist/release/release-metadata.md
+          files: |
+            build/ax6600/.config
+            reports/required-features-release.md
+            reports/baseline-release.md
+            dist/release/release-metadata.json
+            dist/release/release-metadata.md

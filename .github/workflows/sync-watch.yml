@@ -1,0 +1,68 @@
+name: Sync Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-watch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install script dependencies
+        run: python -m pip install --upgrade pip -r scripts/requirements.txt
+
+      - name: Generate sync watch report
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/sync_watch.py \
+            --upstreams targets/ax6600/upstreams.yml \
+            --compat targets/ax6600/compat-matrix.yml \
+            --output reports/sync-watch.md \
+            --json-output reports/sync-watch.json
+          python scripts/refresh_compat_matrix.py \
+            --upstreams targets/ax6600/upstreams.yml \
+            --compat targets/ax6600/compat-matrix.yml \
+            --output targets/ax6600/compat-matrix.yml
+
+      - name: Create review PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: "bot/sync-watch"
+          title: "chore: refresh upstream sync watch report"
+          body: |
+            This PR refreshes the tracked upstream state report.
+
+            Review any reported updates, then follow with `config-diff` and `canary-build`.
+          commit-message: |
+            Refresh upstream sync watch report
+
+            Constraint: Upstream changes must be reviewed before promotion
+            Confidence: medium
+            Scope-risk: narrow
+            Directive: Do not release directly from watch reports without canary validation
+            Tested: Sync watch report generation
+            Not-tested: Source rebase and firmware build
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-watch-report
+          path: |
+            reports/sync-watch.md
+            reports/sync-watch.json
+            targets/ax6600/compat-matrix.yml
