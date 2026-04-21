@@ -1,0 +1,111 @@
+version: 1
+target: ax6600
+
+built_in_target_packages:
+  - "luci-app-athena-led"
+  - "luci-i18n-athena-led-zh-cn"
+
+default_enabled_profiles:
+  - "services"
+  - "memory-boost"
+  - "proxy-stack"
+  - "connectivity"
+  - "storage-nas"
+  - "usb-network"
+  - "docker"
+
+profiles:
+  memory-boost:
+    packages:
+      - "zram-swap"
+
+  services:
+    packages:
+      - "smartdns"
+      - "luci-app-smartdns"
+      - "mosdns"
+      - "luci-app-mosdns"
+      - "v2dat"
+      - "adguardhome"
+      - "luci-app-adguardhome"
+      - "ddns-scripts"
+      - "luci-app-ddns"
+      - "luci-app-autoreboot"
+      - "ttyd"
+      - "luci-app-ttyd"
+      - "luci-app-upnp"
+      - "luci-app-wol"
+
+  proxy-stack:
+    packages:
+      - "luci-app-openclash"
+      - "luci-app-homeproxy"
+      - "luci-app-passwall"
+      - "kmod-nft-tproxy"
+    config_markers:
+      - "CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=y"
+      - "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y"
+      - "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y"
+      - "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray_Geodata=y"
+
+  connectivity:
+    packages:
+      - "tailscale"
+      - "zerotier"
+      - "luci-app-zerotier"
+
+  storage-nas:
+    packages:
+      - "block-mount"
+      - "kmod-usb3"
+      - "kmod-usb-storage"
+      - "kmod-usb-storage-uas"
+      - "kmod-fs-ext4"
+      - "kmod-fs-exfat"
+      - "kmod-fs-ntfs3"
+      - "e2fsprogs"
+      - "parted"
+      - "smartmontools"
+      - "blkid"
+      - "mdadm"
+      - "btrfs-progs"
+      - "util-linux"
+      - "luci-app-diskman"
+      - "samba4-server"
+      - "luci-app-samba4"
+      - "ksmbd-server"
+      - "luci-app-ksmbd"
+
+  usb-network:
+    packages:
+      - "kmod-usb-net"
+      - "kmod-usb-net-rtl8152"
+      - "kmod-usb-net-asix-ax88179"
+      - "kmod-usb-net-cdc-ether"
+      - "kmod-usb-net-cdc-ncm"
+
+  docker:
+    packages:
+      - "containerd"
+      - "runc"
+      - "docker"
+      - "dockerd"
+      - "docker-compose"
+      - "luci-lib-docker"
+      - "luci-app-dockerman"
+
+sources:
+  built_in:
+    - "ones20250/immortalwrt_ipq target/linux/qualcommax/image/ipq60xx.mk"
+  official_feeds:
+    - "immortalwrt/packages"
+    - "immortalwrt/luci"
+  custom_feeds:
+    - "ones20250/homeproxy"
+    - "vernesong/OpenClash"
+    - "Openwrt-Passwall/openwrt-passwall"
+    - "sbwml/luci-app-mosdns"
+    - "rufengsuixing/luci-app-adguardhome"
+    - "lisaac/luci-app-diskman"
+    - "lisaac/luci-app-dockerman"
+    - "lisaac/luci-lib-docker"

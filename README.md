@@ -48,14 +48,30 @@ The default assembled profile now includes:
 - `services`
 - `memory-boost`
 - `proxy-stack`
+- `connectivity`
+- `storage-nas`
+- `usb-network`
+- `docker`
 
 That means the baseline release path is aimed at an opinionated AX6600 image with:
 
 - `zram-swap`
+- `luci-app-athena-led`
 - `luci-app-openclash`
 - `luci-app-homeproxy`
 - `luci-app-passwall`
 - `smartdns`
 - `mosdns`
+- `adguardhome`
+- `tailscale`
+- `zerotier`
+- `luci-app-diskman`
+- `samba4-server`
+- `ksmbd-server`
+- `docker`
+- `dockerd`
+- `luci-app-dockerman`
+
+The full package manifest is tracked in `targets/ax6600/package-plan.yml` and documented in `docs/final-package-list.md`.
 
 You can still add or remove packages at build time through workflow inputs.

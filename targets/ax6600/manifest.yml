@@ -19,6 +19,10 @@ release:
     - "services"
     - "memory-boost"
     - "proxy-stack"
+    - "connectivity"
+    - "storage-nas"
+    - "usb-network"
+    - "docker"
 
 network_defaults:
   lan_ip: "192.168.10.1"
@@ -42,6 +46,10 @@ config_fragments:
     services: "config/ax6600/40-optional-profiles/services.config"
     memory-boost: "config/ax6600/40-optional-profiles/memory-boost.config"
     proxy-stack: "config/ax6600/40-optional-profiles/proxy-stack.config"
+    connectivity: "config/ax6600/40-optional-profiles/connectivity.config"
+    storage-nas: "config/ax6600/40-optional-profiles/storage-nas.config"
+    usb-network: "config/ax6600/40-optional-profiles/usb-network.config"
+    docker: "config/ax6600/40-optional-profiles/docker.config"
 
 feeds_files:
   - "feeds/custom.conf"

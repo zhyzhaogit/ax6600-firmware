@@ -44,6 +44,7 @@ jobs:
             scripts/common.py \
             scripts/assemble_config.py \
             scripts/apply_package_overrides.py \
+            scripts/check_package_plan.py \
             scripts/check_required_features.py \
             scripts/check_baseline.py \
             scripts/sync_watch.py \
@@ -71,6 +72,14 @@ jobs:
             --config build/ax6600/.config \
             --output reports/required-features-ci.md
 
+      - name: Validate package plan
+        run: |
+          python scripts/check_package_plan.py \
+            --manifest targets/ax6600/manifest.yml \
+            --package-plan targets/ax6600/package-plan.yml \
+            --config build/ax6600/.config \
+            --output reports/package-plan-ci.md
+
       - name: Validate baseline example metrics
         run: |
           python scripts/check_baseline.py \
@@ -85,4 +94,5 @@ jobs:
           path: |
             build/ax6600/.config
             reports/required-features-ci.md
+            reports/package-plan-ci.md
             reports/baseline-ci.md
