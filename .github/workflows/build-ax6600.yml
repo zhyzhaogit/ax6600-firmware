@@ -120,7 +120,7 @@ jobs:
           wanted = (
               "CONFIG_TARGET_qualcommax",
               "CONFIG_TARGET_qualcommax_ipq60xx",
-              "CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02",
+              "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02",
               "CONFIG_TARGET_PROFILE",
               "CONFIG_TARGET_ROOTFS_INITRAMFS",
               "CONFIG_ATH11K_NSS_SUPPORT",
