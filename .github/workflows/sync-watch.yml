@@ -40,6 +40,8 @@ jobs:
             --output targets/ax6600/compat-matrix.yml
 
       - name: Create review PR
+        id: create_review_pr
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v6
         with:
           branch: "bot/sync-watch"
@@ -58,7 +60,47 @@ jobs:
             Tested: Sync watch report generation
             Not-tested: Source rebase and firmware build
 
+      - name: Summarize sync watch review lane
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          repo = os.environ["GITHUB_REPOSITORY"]
+          pr_number = "${{ steps.create_review_pr.outputs.pull-request-number }}"
+          pr_url = "${{ steps.create_review_pr.outputs.pull-request-url }}"
+          branch_url = f"https://github.com/{repo}/tree/bot/sync-watch"
+
+          lines = [
+              "## Sync Watch Review Lane",
+              "",
+          ]
+          if pr_number and pr_url:
+              lines.extend(
+                  [
+                      f"- Pull request created or updated: #{pr_number}",
+                      f"- Review URL: {pr_url}",
+                  ]
+              )
+          else:
+              lines.extend(
+                  [
+                      "- Pull request was not created by the workflow.",
+                      f"- Review branch was still pushed: {branch_url}",
+                      "- If you want automatic PR creation, enable the repository setting that allows GitHub Actions to create pull requests.",
+                  ]
+              )
+
+          summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print("\n".join(lines))
+          PY
+
       - name: Upload report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sync-watch-report
