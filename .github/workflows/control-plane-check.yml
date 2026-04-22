@@ -78,6 +78,7 @@ jobs:
             --manifest targets/ax6600/manifest.yml \
             --package-plan targets/ax6600/package-plan.yml \
             --config build/ax6600/.config \
+            --config-phase assembled \
             --output reports/package-plan-ci.md
 
       - name: Validate baseline example metrics

@@ -11,6 +11,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--package-plan", default="targets/ax6600/package-plan.yml")
     parser.add_argument("--config", default="build/ax6600/.config")
     parser.add_argument("--output", default="reports/package-plan-check.md")
+    parser.add_argument(
+        "--config-phase",
+        choices=("assembled", "final"),
+        default="final",
+        help="Use 'assembled' for pre-feed baseline configs and 'final' for post-defconfig validation.",
+    )
     return parser.parse_args()
 
 
@@ -52,14 +58,26 @@ def main() -> int:
                 failures.append(marker)
             rows.append([profile_name, package, status, marker])
         for marker in profile.get("config_markers", []):
+            if args.config_phase == "assembled":
+                rows.append([profile_name, marker, "skip", "deferred until final config validation"])
+                continue
             status = "pass" if marker in config_text else "fail"
             if status == "fail":
                 failures.append(marker)
             rows.append([profile_name, marker, status, marker])
 
+    phase_note = (
+        "Config markers are skipped in assembled mode because feed-resolved dependency symbols are not stable yet."
+        if args.config_phase == "assembled"
+        else "Config markers are enforced in final mode after feeds and defconfig have resolved derived symbols."
+    )
+
     report = "\n".join(
         [
             "# Package Plan Check",
+            "",
+            f"- config phase: `{args.config_phase}`",
+            f"- note: {phase_note}",
             "",
             markdown_table(["profile", "item", "status", "evidence"], rows),
             "",
