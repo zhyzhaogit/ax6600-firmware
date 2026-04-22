@@ -68,6 +68,13 @@ jobs:
           sudo -E apt -yqq autoclean
           sudo -E apt -yqq clean
 
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 1024
+          temp-reserve-mb: 100
+          swap-size-mb: 1024
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -251,6 +258,7 @@ jobs:
             --manifest targets/ax6600/manifest.yml \
             --compat targets/ax6600/compat-matrix.yml \
             --policy targets/ax6600/feature-policy.yml \
+            --package-plan targets/ax6600/package-plan.yml \
             --source-repo "${SOURCE_REPO}" \
             --source-branch "${SOURCE_BRANCH}" \
             --source-commit "${SOURCE_COMMIT}" \
@@ -273,6 +281,20 @@ jobs:
             build/ax6600/final.config
             reports/required-features-build.md
             reports/package-plan-build.md
+
+      - name: Render build summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Build AX6600 Firmware"
+            echo ""
+            echo "- Source: \`${SOURCE_REPO}@${SOURCE_BRANCH}\`"
+            echo "- Release channel: \`stable\`"
+            echo "- Default output: \`factory + sysupgrade\`"
+            echo "- Release metadata: \`dist/release/release-metadata.md\`"
+            echo "- Package-plan gate: \`reports/package-plan-build.md\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Resolve release parameters
         if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)

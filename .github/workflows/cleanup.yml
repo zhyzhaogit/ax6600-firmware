@@ -1,0 +1,40 @@
+name: Cleanup AX6600 Repository
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 18 * * 0"
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete stale workflow runs
+        uses: Mattraks/delete-workflow-runs@v2.1.0
+        with:
+          token: ${{ github.token }}
+          retain_days: 7
+          keep_minimum_runs: 10
+
+      - name: Delete older prereleases
+        uses: dev-drprasad/delete-older-releases@v0.3.4
+        with:
+          keep_latest: 8
+          delete_tags: false
+          delete_prerelease_only: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Render cleanup summary
+        run: |
+          {
+            echo "## Cleanup AX6600 Repository"
+            echo ""
+            echo "- Removed old workflow runs older than 7 days while keeping the latest 10."
+            echo "- Removed older prereleases while keeping the latest 8."
+          } >> "$GITHUB_STEP_SUMMARY"
