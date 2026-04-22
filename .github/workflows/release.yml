@@ -108,6 +108,14 @@ jobs:
             exit 1
           fi
 
+      - name: Validate package plan in downloaded build
+        run: |
+          python scripts/check_package_plan.py \
+            --manifest targets/ax6600/manifest.yml \
+            --package-plan targets/ax6600/package-plan.yml \
+            --config release-input/build/ax6600/final.config \
+            --output release-input/reports/package-plan-release.md
+
       - name: Render publish summary
         run: |
           {
@@ -135,3 +143,4 @@ jobs:
             release-input/dist/release/release-metadata.md
             release-input/build/ax6600/final.config
             release-input/reports/required-features-build.md
+            release-input/reports/package-plan-release.md

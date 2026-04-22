@@ -160,6 +160,14 @@ jobs:
             --config build/ax6600/final.config \
             --output reports/required-features-build.md
 
+      - name: Validate package plan after defconfig
+        run: |
+          python scripts/check_package_plan.py \
+            --manifest targets/ax6600/manifest.yml \
+            --package-plan targets/ax6600/package-plan.yml \
+            --config build/ax6600/final.config \
+            --output reports/package-plan-build.md
+
       - name: Upload defconfig debug snapshot
         if: always()
         uses: actions/upload-artifact@v4
@@ -170,6 +178,7 @@ jobs:
             build/ax6600/final.config
             reports/defconfig-focus-build.md
             reports/required-features-build.md
+            reports/package-plan-build.md
           if-no-files-found: warn
 
       - name: Download sources
@@ -217,3 +226,4 @@ jobs:
             dist/release/release-metadata.md
             build/ax6600/final.config
             reports/required-features-build.md
+            reports/package-plan-build.md
