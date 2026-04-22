@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    tags:
+      - ax6600-*
+  schedule:
+    - cron: "0 18 * * 0"
   workflow_dispatch:
     inputs:
       source_key:
@@ -23,9 +27,27 @@ on:
         description: "Whitespace/comma/newline separated package overrides. Use -pkg to disable."
         required: false
         default: ""
+      publish_release:
+        description: "Publish to GitHub Releases after a successful build"
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag to create when publish_release is enabled"
+        required: false
+        default: ""
+      release_name:
+        description: "Release title. Leave empty to reuse the tag."
+        required: false
+        default: ""
+      prerelease:
+        description: "Mark the published release as a prerelease"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -53,6 +75,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Restore download cache
+        id: restore-download-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: cache/dl
+          key: ax6600-dl-${{ runner.os }}-${{ hashFiles('feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'scripts/prepare_source_tree.sh') }}
+          restore-keys: |
+            ax6600-dl-${{ runner.os }}-
 
       - name: Install script dependencies
         run: python -m pip install --upgrade pip -r scripts/requirements.txt
@@ -99,6 +132,9 @@ jobs:
         run: |
           git clone --depth 1 --branch "${SOURCE_BRANCH}" "https://github.com/${SOURCE_REPO}.git" work/source
           bash scripts/prepare_source_tree.sh work/source feeds/custom.conf patches/firmware-layer
+          mkdir -p "${GITHUB_WORKSPACE}/cache/dl"
+          rm -rf work/source/dl
+          ln -s "${GITHUB_WORKSPACE}/cache/dl" work/source/dl
           cp build/ax6600/.config work/source/.config
 
       - name: Update feeds and defconfig
@@ -187,6 +223,13 @@ jobs:
           make download -j8
           popd
 
+      - name: Save download cache
+        if: always() && steps.restore-download-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: cache/dl
+          key: ${{ steps.restore-download-cache.outputs.cache-primary-key }}
+
       - name: Build firmware
         run: |
           pushd work/source
@@ -219,6 +262,49 @@ jobs:
         with:
           name: ax6600-firmware-${{ github.run_number }}
           path: |
+            dist/firmware/factory/**
+            dist/firmware/sysupgrade/**
+            dist/firmware/meta/**
+            dist/release/release-metadata.json
+            dist/release/release-metadata.md
+            build/ax6600/final.config
+            reports/required-features-build.md
+            reports/package-plan-build.md
+
+      - name: Resolve release parameters
+        if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            release_tag="${GITHUB_REF_NAME}"
+            release_name="${GITHUB_REF_NAME}"
+            prerelease="false"
+          else
+            release_tag="${{ inputs.release_tag }}"
+            release_name="${{ inputs.release_name }}"
+            prerelease="${{ inputs.prerelease }}"
+            if [[ -z "${release_tag}" ]]; then
+              release_tag="ax6600-manual-${GITHUB_RUN_NUMBER}"
+            fi
+            if [[ -z "${release_name}" ]]; then
+              release_name="${release_tag}"
+            fi
+          fi
+          {
+            echo "RELEASE_TAG=${release_tag}"
+            echo "RELEASE_NAME=${release_name}"
+            echo "RELEASE_PRERELEASE=${prerelease}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          body_path: dist/release/release-metadata.md
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          files: |
             dist/firmware/factory/**
             dist/firmware/sysupgrade/**
             dist/firmware/meta/**
