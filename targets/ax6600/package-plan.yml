@@ -101,11 +101,9 @@ sources:
     - "immortalwrt/packages"
     - "immortalwrt/luci"
   custom_feeds:
-    - "ones20250/homeproxy"
     - "vernesong/OpenClash"
     - "Openwrt-Passwall/openwrt-passwall"
     - "sbwml/luci-app-mosdns"
-    - "rufengsuixing/luci-app-adguardhome"
     - "lisaac/luci-app-diskman"
     - "lisaac/luci-app-dockerman"
     - "lisaac/luci-lib-docker"

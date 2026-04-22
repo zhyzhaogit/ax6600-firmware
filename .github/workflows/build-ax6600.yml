@@ -135,13 +135,16 @@ jobs:
           mkdir -p "${GITHUB_WORKSPACE}/cache/dl"
           rm -rf work/source/dl
           ln -s "${GITHUB_WORKSPACE}/cache/dl" work/source/dl
-          cp build/ax6600/.config work/source/.config
 
       - name: Update feeds and defconfig
         run: |
           pushd work/source
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          # Apply the assembled package selections only after feeds are installed.
+          # Otherwise feed-provided symbols are still unknown and can be pruned
+          # before defconfig sees the intended package plan.
+          cp "${GITHUB_WORKSPACE}/build/ax6600/.config" .config
           make defconfig
           popd
           cp work/source/.config build/ax6600/final.config
