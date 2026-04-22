@@ -148,6 +148,7 @@ jobs:
           pushd work/source
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          python "${GITHUB_WORKSPACE}/scripts/normalize_feed_versions.py" --source-root "$(pwd)"
           # Apply the assembled package selections only after feeds are installed.
           # Otherwise feed-provided symbols are still unknown and can be pruned
           # before defconfig sees the intended package plan.
