@@ -23,7 +23,10 @@ profiles:
     packages:
       - "smartdns"
       - "luci-app-smartdns"
-      - "mosdns"
+      - name: "mosdns"
+        all_of:
+          - "CONFIG_FEED_mosdns=y"
+          - "CONFIG_PACKAGE_luci-app-mosdns=y"
       - "luci-app-mosdns"
       - "v2dat"
       - "adguardhome"

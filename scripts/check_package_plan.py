@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import Any
 
 from common import REPO_ROOT, load_yaml, markdown_table, write_text
 
@@ -22,6 +23,45 @@ def parse_args() -> argparse.Namespace:
 
 def package_to_config_marker(name: str) -> str:
     return f"CONFIG_PACKAGE_{name}=y"
+
+
+def item_name(item: Any) -> str:
+    if isinstance(item, str):
+        return item
+    return item.get("name", "<unnamed>")
+
+
+def evaluate_item(item: Any, config_text: str) -> tuple[str, str | list[str]]:
+    if isinstance(item, str):
+        marker = package_to_config_marker(item)
+        return ("pass" if marker in config_text else "fail", marker)
+
+    any_of = item.get("any_of", [])
+    all_of = item.get("all_of", [])
+    marker = item.get("marker")
+
+    if marker:
+        status = "pass" if marker in config_text else "fail"
+        return status, marker
+
+    if any_of:
+        matched = [candidate for candidate in any_of if candidate in config_text]
+        status = "pass" if matched else "fail"
+        return status, matched or any_of
+
+    if all_of:
+        missing = [candidate for candidate in all_of if candidate not in config_text]
+        status = "pass" if not missing else "fail"
+        return status, all_of if status == "pass" else missing
+
+    marker = package_to_config_marker(item_name(item))
+    return ("pass" if marker in config_text else "fail", marker)
+
+
+def evidence_text(evidence: str | list[str]) -> str:
+    if isinstance(evidence, str):
+        return evidence
+    return " | ".join(evidence)
 
 
 def main() -> int:
@@ -52,11 +92,10 @@ def main() -> int:
     for profile_name in plan_defaults:
         profile = plan["profiles"][profile_name]
         for package in profile.get("packages", []):
-            marker = package_to_config_marker(package)
-            status = "pass" if marker in config_text else "fail"
+            status, evidence = evaluate_item(package, config_text)
             if status == "fail":
-                failures.append(marker)
-            rows.append([profile_name, package, status, marker])
+                failures.append(item_name(package))
+            rows.append([profile_name, item_name(package), status, evidence_text(evidence)])
         for marker in profile.get("config_markers", []):
             if args.config_phase == "assembled":
                 rows.append([profile_name, marker, "skip", "deferred until final config validation"])
