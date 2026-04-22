@@ -147,6 +147,9 @@ jobs:
         run: |
           pushd work/source
           ./scripts/feeds update -a
+          python "${GITHUB_WORKSPACE}/scripts/prune_conflicting_feed_packages.py" \
+            --source-root "$(pwd)" \
+            --report "${GITHUB_WORKSPACE}/reports/feed-conflicts-build.md"
           ./scripts/feeds install -a
           python "${GITHUB_WORKSPACE}/scripts/normalize_feed_versions.py" --source-root "$(pwd)"
           # Apply the assembled package selections only after feeds are installed.
@@ -226,6 +229,7 @@ jobs:
             reports/defconfig-focus-build.md
             reports/required-features-build.md
             reports/package-plan-build.md
+            reports/feed-conflicts-build.md
           if-no-files-found: warn
 
       - name: Download sources
@@ -282,6 +286,7 @@ jobs:
             build/ax6600/final.config
             reports/required-features-build.md
             reports/package-plan-build.md
+            reports/feed-conflicts-build.md
 
       - name: Render build summary
         if: always()

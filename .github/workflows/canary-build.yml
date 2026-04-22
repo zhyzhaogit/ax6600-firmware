@@ -103,6 +103,9 @@ jobs:
         run: |
           pushd work/source
           ./scripts/feeds update -a
+          python "${GITHUB_WORKSPACE}/scripts/prune_conflicting_feed_packages.py" \
+            --source-root "$(pwd)" \
+            --report "${GITHUB_WORKSPACE}/reports/feed-conflicts-canary.md"
           ./scripts/feeds install -a
           python "${GITHUB_WORKSPACE}/scripts/normalize_feed_versions.py" --source-root "$(pwd)"
           make defconfig
@@ -148,5 +151,6 @@ jobs:
             reports/config.diff
             reports/required-features-prep.md
             reports/required-features.md
+            reports/feed-conflicts-canary.md
             dist/release/release-metadata.json
             dist/release/release-metadata.md
