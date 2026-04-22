@@ -7,15 +7,21 @@ features:
     config_markers:
       - "CONFIG_TARGET_qualcommax=y"
       - "CONFIG_TARGET_qualcommax_ipq60xx=y"
-      - "CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y"
       - "CONFIG_ATH11K_NSS_SUPPORT=y"
       - "CONFIG_PACKAGE_MAC80211_NSS_SUPPORT=y"
       - "CONFIG_NSS_FIRMWARE_VERSION_11_4=y"
+    config_marker_groups:
+      - description: "AX6600 target selection"
+        any_of:
+          - "CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y"
+          - "CONFIG_TARGET_PROFILE=\"DEVICE_jdcloud_re-cs-02\""
 
   network_tuning:
     level: "required"
     description: "Base builds must include low-risk networking improvements."
     config_markers:
+      - "CONFIG_PACKAGE_libiconv-full=y"
+      - "CONFIG_PACKAGE_libintl-full=y"
       - "CONFIG_PACKAGE_irqbalance=y"
     config_marker_groups:
       - description: "ethtool userland utility"

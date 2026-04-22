@@ -110,6 +110,49 @@ jobs:
           popd
           cp work/source/.config build/ax6600/final.config
 
+      - name: Render defconfig focus report
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          config_path = Path("build/ax6600/final.config")
+          lines = config_path.read_text(encoding="utf-8").splitlines()
+          wanted = (
+              "CONFIG_TARGET_qualcommax",
+              "CONFIG_TARGET_qualcommax_ipq60xx",
+              "CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02",
+              "CONFIG_TARGET_PROFILE",
+              "CONFIG_TARGET_ROOTFS_INITRAMFS",
+              "CONFIG_ATH11K_NSS_SUPPORT",
+              "CONFIG_PACKAGE_MAC80211_NSS_SUPPORT",
+              "CONFIG_NSS_FIRMWARE_VERSION_11_4",
+              "CONFIG_PACKAGE_libiconv-full",
+              "CONFIG_PACKAGE_libintl-full",
+              "CONFIG_PACKAGE_irqbalance",
+              "CONFIG_PACKAGE_luci-app-irqbalance",
+              "CONFIG_PACKAGE_ethtool",
+              "CONFIG_PACKAGE_ethtool-full",
+          )
+          selected = []
+          for line in lines:
+              if line.startswith(wanted) or any(line.startswith(f"# {item} is not set") for item in wanted):
+                  selected.append(line)
+          report = "\n".join(
+              [
+                  "# Defconfig Focus Report",
+                  "",
+                  "```config",
+                  *selected,
+                  "```",
+                  "",
+              ]
+          )
+          report_path = Path("reports/defconfig-focus-build.md")
+          report_path.parent.mkdir(parents=True, exist_ok=True)
+          report_path.write_text(report, encoding="utf-8")
+          print(report)
+          PY
+
       - name: Validate required features
         run: |
           python scripts/check_required_features.py \
@@ -125,6 +168,7 @@ jobs:
           path: |
             build/ax6600/.config
             build/ax6600/final.config
+            reports/defconfig-focus-build.md
             reports/required-features-build.md
           if-no-files-found: warn
 
