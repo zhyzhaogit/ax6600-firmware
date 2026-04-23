@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from common import REPO_ROOT, load_yaml, write_json, write_text
@@ -28,6 +29,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def package_item_name(item: Any) -> str:
+    if isinstance(item, str):
+        return item
+    if isinstance(item, dict):
+        return str(item.get("name", "<unnamed>"))
+    return str(item)
+
+
 def main() -> int:
     args = parse_args()
     manifest = load_yaml(REPO_ROOT / args.manifest)
@@ -51,8 +60,9 @@ def main() -> int:
     for profile_name in merged_profiles:
         profile = package_plan.get("profiles", {}).get(profile_name, {})
         for package in profile.get("packages", []):
-            if package not in enabled_profile_packages:
-                enabled_profile_packages.append(package)
+            package_name = package_item_name(package)
+            if package_name not in enabled_profile_packages:
+                enabled_profile_packages.append(package_name)
 
     metadata = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
