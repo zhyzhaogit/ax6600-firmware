@@ -151,6 +151,7 @@ jobs:
             --source-root "$(pwd)" \
             --report "${GITHUB_WORKSPACE}/reports/feed-conflicts-build.md"
           ./scripts/feeds install -a
+          ./scripts/feeds install -f -p mosdns mosdns luci-app-mosdns v2dat
           python "${GITHUB_WORKSPACE}/scripts/normalize_feed_versions.py" --source-root "$(pwd)"
           # Apply the assembled package selections only after feeds are installed.
           # Otherwise feed-provided symbols are still unknown and can be pruned

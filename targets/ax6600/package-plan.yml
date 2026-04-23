@@ -24,7 +24,10 @@ profiles:
       - "smartdns"
       - "luci-app-smartdns"
       - name: "mosdns"
-        all_of:
+        assembled_any_of:
+          - "CONFIG_PACKAGE_mosdns=y"
+          - "CONFIG_PACKAGE_luci-app-mosdns=y"
+        final_all_of:
           - "CONFIG_FEED_mosdns=y"
           - "CONFIG_PACKAGE_luci-app-mosdns=y"
       - "luci-app-mosdns"

@@ -107,6 +107,7 @@ jobs:
             --source-root "$(pwd)" \
             --report "${GITHUB_WORKSPACE}/reports/feed-conflicts-canary.md"
           ./scripts/feeds install -a
+          ./scripts/feeds install -f -p mosdns mosdns luci-app-mosdns v2dat
           python "${GITHUB_WORKSPACE}/scripts/normalize_feed_versions.py" --source-root "$(pwd)"
           make defconfig
           popd

@@ -31,10 +31,21 @@ def item_name(item: Any) -> str:
     return item.get("name", "<unnamed>")
 
 
-def evaluate_item(item: Any, config_text: str) -> tuple[str, str | list[str]]:
+def evaluate_item(item: Any, config_text: str, config_phase: str) -> tuple[str, str | list[str]]:
     if isinstance(item, str):
         marker = package_to_config_marker(item)
         return ("pass" if marker in config_text else "fail", marker)
+
+    phase_any_of = item.get(f"{config_phase}_any_of", [])
+    phase_all_of = item.get(f"{config_phase}_all_of", [])
+    if phase_any_of:
+        matched = [candidate for candidate in phase_any_of if candidate in config_text]
+        status = "pass" if matched else "fail"
+        return status, matched or phase_any_of
+    if phase_all_of:
+        missing = [candidate for candidate in phase_all_of if candidate not in config_text]
+        status = "pass" if not missing else "fail"
+        return status, phase_all_of if status == "pass" else missing
 
     any_of = item.get("any_of", [])
     all_of = item.get("all_of", [])
@@ -92,7 +103,7 @@ def main() -> int:
     for profile_name in plan_defaults:
         profile = plan["profiles"][profile_name]
         for package in profile.get("packages", []):
-            status, evidence = evaluate_item(package, config_text)
+            status, evidence = evaluate_item(package, config_text, args.config_phase)
             if status == "fail":
                 failures.append(item_name(package))
             rows.append([profile_name, item_name(package), status, evidence_text(evidence)])
