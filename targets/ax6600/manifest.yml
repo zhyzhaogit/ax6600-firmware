@@ -32,7 +32,7 @@ network_defaults:
 
 source_selection:
   preferred_upstream: "source-primary"
-  bootstrap_upstream: "source-upstream"
+  bootstrap_upstream: "source-primary"
   fallback_upstream: "fallback-upstream"
   preferred_branch: "ax6600-stable"
 

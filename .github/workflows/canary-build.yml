@@ -6,7 +6,7 @@ on:
       source_key:
         description: "Key from targets/ax6600/upstreams.yml"
         required: false
-        default: "source-upstream"
+        default: "source-primary"
       optional_profiles:
         description: "Comma-separated optional profile keys"
         required: false
