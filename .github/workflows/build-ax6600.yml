@@ -304,13 +304,19 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Resolve release parameters
-        if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
         shell: bash
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             release_tag="${GITHUB_REF_NAME}"
             release_name="${GITHUB_REF_NAME}"
             prerelease="false"
+          elif [[ "${GITHUB_REF}" == "refs/heads/main" && "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            shanghai_stamp="$(TZ=Asia/Shanghai date +%Y%m%d-%H%M%S)"
+            short_sha="${GITHUB_SHA::7}"
+            release_tag="ax6600-main-${shanghai_stamp}-run${GITHUB_RUN_NUMBER}-${short_sha}"
+            release_name="AX6600 Main Prerelease ${shanghai_stamp} (${short_sha})"
+            prerelease="true"
           else
             release_tag="${{ inputs.release_tag }}"
             release_name="${{ inputs.release_name }}"
@@ -329,7 +335,7 @@ jobs:
           } >> "${GITHUB_ENV}"
 
       - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
