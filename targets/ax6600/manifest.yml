@@ -18,6 +18,7 @@ release:
   default_optional_profiles:
     - "access-localization"
     - "services"
+    - "observability"
     - "memory-boost"
     - "proxy-stack"
     - "connectivity"
@@ -47,6 +48,7 @@ config_fragments:
   optional_profiles:
     access-localization: "config/ax6600/40-optional-profiles/access-localization.config"
     services: "config/ax6600/40-optional-profiles/services.config"
+    observability: "config/ax6600/40-optional-profiles/observability.config"
     memory-boost: "config/ax6600/40-optional-profiles/memory-boost.config"
     proxy-stack: "config/ax6600/40-optional-profiles/proxy-stack.config"
     connectivity: "config/ax6600/40-optional-profiles/connectivity.config"

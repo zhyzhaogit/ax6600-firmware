@@ -8,6 +8,7 @@ built_in_target_packages:
 default_enabled_profiles:
   - "access-localization"
   - "services"
+  - "observability"
   - "memory-boost"
   - "proxy-stack"
   - "connectivity"
@@ -24,14 +25,21 @@ profiles:
       - "luci-i18n-base-zh-cn"
       - "luci-i18n-firewall-zh-cn"
       - "luci-i18n-ddns-zh-cn"
+      - "luci-i18n-ddns-go-zh-cn"
       - "luci-i18n-autoreboot-zh-cn"
       - "luci-i18n-smartdns-zh-cn"
       - "luci-i18n-mosdns-zh-cn"
       - "luci-i18n-passwall-zh-cn"
       - "luci-i18n-zerotier-zh-cn"
+      - "luci-i18n-easytier-zh-cn"
+      - "luci-i18n-lucky-zh-cn"
       - "luci-i18n-diskman-zh-cn"
       - "luci-i18n-dockerman-zh-cn"
+      - "luci-i18n-netdata-zh-cn"
+      - "luci-i18n-package-manager-zh-cn"
+      - "luci-i18n-pbr-zh-cn"
       - "luci-i18n-samba4-zh-cn"
+      - "luci-i18n-statistics-zh-cn"
       - "luci-i18n-ttyd-zh-cn"
       - "luci-i18n-upnp-zh-cn"
       - "luci-i18n-wol-zh-cn"
@@ -57,11 +65,22 @@ profiles:
       - "luci-app-adguardhome"
       - "ddns-scripts"
       - "luci-app-ddns"
+      - "ddns-go"
+      - "luci-app-ddns-go"
       - "luci-app-autoreboot"
       - "ttyd"
       - "luci-app-ttyd"
       - "luci-app-upnp"
       - "luci-app-wol"
+      - "lucky"
+      - "luci-app-lucky"
+
+  observability:
+    packages:
+      - "netdata"
+      - "luci-app-netdata"
+      - "luci-app-statistics"
+      - "luci-app-package-manager"
 
   proxy-stack:
     packages:
@@ -69,6 +88,8 @@ profiles:
       - "luci-app-homeproxy"
       - "luci-app-passwall"
       - "kmod-nft-tproxy"
+      - "pbr"
+      - "luci-app-pbr"
     config_markers:
       - "CONFIG_PACKAGE_ipt2socks=y"
       - "CONFIG_PACKAGE_kmod-nft-socket=y"
@@ -79,6 +100,8 @@ profiles:
 
   connectivity:
     packages:
+      - "easytier"
+      - "luci-app-easytier"
       - "zerotier"
       - "luci-app-zerotier"
 
@@ -135,3 +158,5 @@ sources:
     - "lisaac/luci-app-diskman"
     - "lisaac/luci-app-dockerman"
     - "lisaac/luci-lib-docker"
+    - "EasyTier/luci-app-easytier"
+    - "sirpdboy/luci-app-lucky"

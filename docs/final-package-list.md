@@ -29,14 +29,21 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `luci-i18n-base-zh-cn`
 - `luci-i18n-firewall-zh-cn`
 - `luci-i18n-ddns-zh-cn`
+- `luci-i18n-ddns-go-zh-cn`
 - `luci-i18n-autoreboot-zh-cn`
 - `luci-i18n-smartdns-zh-cn`
 - `luci-i18n-mosdns-zh-cn`
 - `luci-i18n-passwall-zh-cn`
 - `luci-i18n-zerotier-zh-cn`
+- `luci-i18n-easytier-zh-cn`
+- `luci-i18n-lucky-zh-cn`
 - `luci-i18n-diskman-zh-cn`
 - `luci-i18n-dockerman-zh-cn`
+- `luci-i18n-netdata-zh-cn`
+- `luci-i18n-package-manager-zh-cn`
+- `luci-i18n-pbr-zh-cn`
 - `luci-i18n-samba4-zh-cn`
+- `luci-i18n-statistics-zh-cn`
 - `luci-i18n-ttyd-zh-cn`
 - `luci-i18n-upnp-zh-cn`
 - `luci-i18n-wol-zh-cn`
@@ -58,17 +65,30 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `luci-app-adguardhome`
 - `ddns-scripts`
 - `luci-app-ddns`
+- `ddns-go`
+- `luci-app-ddns-go`
 - `luci-app-autoreboot`
 - `ttyd`
 - `luci-app-ttyd`
 - `luci-app-upnp`
 - `luci-app-wol`
+- `lucky`
+- `luci-app-lucky`
+
+### Observability / Package Management
+
+- `netdata`
+- `luci-app-netdata`
+- `luci-app-statistics`
+- `luci-app-package-manager`
 
 ### Proxy Stack
 
 - `luci-app-openclash`
 - `luci-app-homeproxy`
 - `luci-app-passwall`
+- `pbr`
+- `luci-app-pbr`
 - PassWall runtime markers:
   - `CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=y`
   - `CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y`
@@ -79,6 +99,8 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 
 ### Remote Connectivity
 
+- `easytier`
+- `luci-app-easytier`
 - `zerotier`
 - `luci-app-zerotier`
 

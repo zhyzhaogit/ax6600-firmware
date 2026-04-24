@@ -46,6 +46,7 @@ It does not own upstream source history. That lives in `ax6600-source`.
 The default assembled profile now includes:
 
 - `services`
+- `observability`
 - `memory-boost`
 - `proxy-stack`
 - `connectivity`
@@ -64,6 +65,12 @@ That means the baseline release path is aimed at an opinionated AX6600 image wit
 - `smartdns`
 - `mosdns`
 - `adguardhome`
+- `ddns-go`
+- `luci-app-package-manager`
+- `netdata`
+- `luci-app-statistics`
+- `easytier`
+- `lucky`
 - `zerotier`
 - `luci-app-diskman`
 - `samba4-server`
