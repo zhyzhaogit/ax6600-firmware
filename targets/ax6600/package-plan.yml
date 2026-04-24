@@ -6,6 +6,7 @@ built_in_target_packages:
   - "luci-i18n-athena-led-zh-cn"
 
 default_enabled_profiles:
+  - "access-localization"
   - "services"
   - "memory-boost"
   - "proxy-stack"
@@ -15,6 +16,26 @@ default_enabled_profiles:
   - "docker"
 
 profiles:
+  access-localization:
+    packages:
+      - "ca-bundle"
+      - "ca-certificates"
+      - "wget-ssl"
+      - "luci-i18n-base-zh-cn"
+      - "luci-i18n-firewall-zh-cn"
+      - "luci-i18n-ddns-zh-cn"
+      - "luci-i18n-autoreboot-zh-cn"
+      - "luci-i18n-smartdns-zh-cn"
+      - "luci-i18n-mosdns-zh-cn"
+      - "luci-i18n-passwall-zh-cn"
+      - "luci-i18n-zerotier-zh-cn"
+      - "luci-i18n-diskman-zh-cn"
+      - "luci-i18n-dockerman-zh-cn"
+      - "luci-i18n-samba4-zh-cn"
+      - "luci-i18n-ttyd-zh-cn"
+      - "luci-i18n-upnp-zh-cn"
+      - "luci-i18n-wol-zh-cn"
+
   memory-boost:
     packages:
       - "zram-swap"

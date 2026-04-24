@@ -4,6 +4,7 @@ set -euo pipefail
 SOURCE_DIR="${1:?source directory is required}"
 FEEDS_FILE="${2:?feeds file is required}"
 PATCH_DIR="${3:?patch directory is required}"
+OVERLAY_DIR="${4:-}"
 
 if [[ ! -d "${SOURCE_DIR}" ]]; then
   echo "source directory not found: ${SOURCE_DIR}" >&2
@@ -24,4 +25,9 @@ if [[ -d "${PATCH_DIR}" ]]; then
   while IFS= read -r -d '' patch_file; do
     git -C "${SOURCE_DIR}" apply --whitespace=nowarn "${patch_file}"
   done < <(find "${PATCH_DIR}" -type f -name '*.patch' -print0 | sort -z)
+fi
+
+if [[ -n "${OVERLAY_DIR}" && -d "${OVERLAY_DIR}" ]]; then
+  mkdir -p "${SOURCE_DIR}/files"
+  cp -a "${OVERLAY_DIR}/." "${SOURCE_DIR}/files/"
 fi

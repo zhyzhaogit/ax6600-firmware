@@ -97,6 +97,12 @@ jobs:
       - name: Install script dependencies
         run: python -m pip install --upgrade pip -r scripts/requirements.txt
 
+      - name: Render runtime defaults overlay
+        run: |
+          python scripts/render_runtime_defaults.py \
+            --manifest targets/ax6600/manifest.yml \
+            --output build/ax6600/runtime-overlay/etc/uci-defaults/99-ax6600-defaults
+
       - name: Assemble config
         run: |
           EXTRA_ARGS=""
@@ -138,7 +144,7 @@ jobs:
       - name: Clone and prepare source tree
         run: |
           git clone --depth 1 --branch "${SOURCE_BRANCH}" "https://github.com/${SOURCE_REPO}.git" work/source
-          bash scripts/prepare_source_tree.sh work/source feeds/custom.conf patches/firmware-layer
+          bash scripts/prepare_source_tree.sh work/source feeds/custom.conf patches/firmware-layer build/ax6600/runtime-overlay
           mkdir -p "${GITHUB_WORKSPACE}/cache/dl"
           rm -rf work/source/dl
           ln -s "${GITHUB_WORKSPACE}/cache/dl" work/source/dl

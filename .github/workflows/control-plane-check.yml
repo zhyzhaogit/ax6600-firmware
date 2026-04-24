@@ -50,6 +50,7 @@ jobs:
             scripts/sync_watch.py \
             scripts/config_diff.py \
             scripts/render_release_metadata.py \
+            scripts/render_runtime_defaults.py \
             scripts/bootstrap_identity.py \
             scripts/refresh_compat_matrix.py
 
@@ -58,6 +59,12 @@ jobs:
           python scripts/assemble_config.py \
             --manifest targets/ax6600/manifest.yml \
             --output build/ax6600/.config
+
+      - name: Render runtime defaults overlay
+        run: |
+          python scripts/render_runtime_defaults.py \
+            --manifest targets/ax6600/manifest.yml \
+            --output build/ax6600/runtime-overlay/etc/uci-defaults/99-ax6600-defaults
 
       - name: Apply sample package override
         run: |
@@ -94,6 +101,7 @@ jobs:
           name: control-plane-check
           path: |
             build/ax6600/.config
+            build/ax6600/runtime-overlay/etc/uci-defaults/99-ax6600-defaults
             reports/required-features-ci.md
             reports/package-plan-ci.md
             reports/baseline-ci.md

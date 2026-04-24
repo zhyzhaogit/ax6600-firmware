@@ -21,6 +21,26 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 
 ## Final Default Package Set
 
+### Access / Localization
+
+- `ca-bundle`
+- `ca-certificates`
+- `wget-ssl`
+- `luci-i18n-base-zh-cn`
+- `luci-i18n-firewall-zh-cn`
+- `luci-i18n-ddns-zh-cn`
+- `luci-i18n-autoreboot-zh-cn`
+- `luci-i18n-smartdns-zh-cn`
+- `luci-i18n-mosdns-zh-cn`
+- `luci-i18n-passwall-zh-cn`
+- `luci-i18n-zerotier-zh-cn`
+- `luci-i18n-diskman-zh-cn`
+- `luci-i18n-dockerman-zh-cn`
+- `luci-i18n-samba4-zh-cn`
+- `luci-i18n-ttyd-zh-cn`
+- `luci-i18n-upnp-zh-cn`
+- `luci-i18n-wol-zh-cn`
+
 ### Memory And Device
 
 - `zram-swap`

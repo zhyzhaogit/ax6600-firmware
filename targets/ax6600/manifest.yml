@@ -16,6 +16,7 @@ release:
   name_prefix: "ax6600"
   timezone: "Asia/Shanghai"
   default_optional_profiles:
+    - "access-localization"
     - "services"
     - "memory-boost"
     - "proxy-stack"
@@ -25,10 +26,11 @@ release:
     - "docker"
 
 network_defaults:
-  lan_ip: "192.168.10.1"
+  lan_ip: "10.0.0.1"
   ssid: "AX6600"
   wifi_password_hint: "set-after-flash"
   theme: "bootstrap"
+  luci_lang: "zh_cn"
 
 source_selection:
   preferred_upstream: "source-primary"
@@ -43,6 +45,7 @@ config_fragments:
     - "config/ax6600/20-network-tuning.config"
     - "config/ax6600/30-core-packages.config"
   optional_profiles:
+    access-localization: "config/ax6600/40-optional-profiles/access-localization.config"
     services: "config/ax6600/40-optional-profiles/services.config"
     memory-boost: "config/ax6600/40-optional-profiles/memory-boost.config"
     proxy-stack: "config/ax6600/40-optional-profiles/proxy-stack.config"
