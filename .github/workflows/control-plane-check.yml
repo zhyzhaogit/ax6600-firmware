@@ -51,6 +51,7 @@ jobs:
             scripts/config_diff.py \
             scripts/render_release_metadata.py \
             scripts/render_runtime_defaults.py \
+            scripts/sanitize_apk_repositories.py \
             scripts/bootstrap_identity.py \
             scripts/refresh_compat_matrix.py
 

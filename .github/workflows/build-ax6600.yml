@@ -258,6 +258,12 @@ jobs:
           make -j"$(nproc)" || make -j1 V=s
           popd
 
+      - name: Sanitize APK repositories
+        run: |
+          python scripts/sanitize_apk_repositories.py \
+            --source-root work/source \
+            --report reports/apk-repositories-build.md
+
       - name: Collect firmware artifacts
         run: |
           bash scripts/collect_firmware_artifacts.sh work/source dist/firmware
@@ -294,6 +300,7 @@ jobs:
             reports/required-features-build.md
             reports/package-plan-build.md
             reports/feed-conflicts-build.md
+            reports/apk-repositories-build.md
 
       - name: Render build summary
         if: always()

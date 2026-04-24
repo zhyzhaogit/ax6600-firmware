@@ -149,3 +149,4 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - This list is intentionally aggressive because the target device has relatively usable storage and the user wants future-heavy features compiled in.
 - Availability was cross-checked against the current upstream device tree, official ImmortalWrt feeds, and the referenced custom package repositories.
 - Runtime enablement is still separate from compile-time inclusion. For example, Samba, ksmbd, Docker, and proxy tools can all be compiled in without forcing all services to start by default.
+- Custom-feed packages are compiled into the image. Their remote APK repository entries are disabled in the generated image unless a real public `packages.adb` index exists.
