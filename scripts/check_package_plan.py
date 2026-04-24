@@ -31,6 +31,12 @@ def item_name(item: Any) -> str:
     return item.get("name", "<unnamed>")
 
 
+def item_required(item: Any) -> bool:
+    if isinstance(item, str):
+        return True
+    return item.get("required", True)
+
+
 def evaluate_item(item: Any, config_text: str, config_phase: str) -> tuple[str, str | list[str]]:
     if isinstance(item, str):
         marker = package_to_config_marker(item)
@@ -105,7 +111,10 @@ def main() -> int:
         for package in profile.get("packages", []):
             status, evidence = evaluate_item(package, config_text, args.config_phase)
             if status == "fail":
-                failures.append(item_name(package))
+                if item_required(package):
+                    failures.append(item_name(package))
+                else:
+                    status = "warn"
             rows.append([profile_name, item_name(package), status, evidence_text(evidence)])
         for marker in profile.get("config_markers", []):
             if args.config_phase == "assembled":

@@ -285,7 +285,7 @@ jobs:
         run: ccache -s || true
 
       - name: Save compiler cache
-        if: always() && steps.restore-ccache-cache.outputs.cache-hit != 'true'
+        if: success() && steps.restore-ccache-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: .ccache
