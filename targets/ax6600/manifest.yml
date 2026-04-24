@@ -42,6 +42,7 @@ source_selection:
 config_fragments:
   base:
     - "config/ax6600/00-target.config"
+    - "config/ax6600/05-build-acceleration.config"
     - "config/ax6600/10-nss.config"
     - "config/ax6600/20-network-tuning.config"
     - "config/ax6600/30-core-packages.config"

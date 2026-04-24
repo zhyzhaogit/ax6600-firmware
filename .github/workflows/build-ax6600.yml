@@ -53,6 +53,10 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 2G
+      CCACHE_COMPILERCHECK: content
 
     steps:
       - name: Free disk space
@@ -63,7 +67,7 @@ jobs:
       - name: Build environment setup
         run: |
           sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-          sudo -E apt -yqq install libfuse-dev
+          sudo -E apt -yqq install libfuse-dev ccache
           sudo -E apt -yqq autoremove --purge
           sudo -E apt -yqq autoclean
           sudo -E apt -yqq clean
@@ -93,6 +97,23 @@ jobs:
           key: ax6600-dl-${{ runner.os }}-${{ hashFiles('feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'scripts/prepare_source_tree.sh') }}
           restore-keys: |
             ax6600-dl-${{ runner.os }}-
+
+      - name: Restore compiler cache
+        id: restore-ccache-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ax6600-ccache-${{ runner.os }}-${{ hashFiles('config/ax6600/**/*.config', 'feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'targets/ax6600/upstreams.yml', 'scripts/prepare_source_tree.sh', 'scripts/normalize_feed_versions.py', 'scripts/prune_conflicting_feed_packages.py') }}-${{ github.run_id }}
+          restore-keys: |
+            ax6600-ccache-${{ runner.os }}-${{ hashFiles('config/ax6600/**/*.config', 'feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'targets/ax6600/upstreams.yml', 'scripts/prepare_source_tree.sh', 'scripts/normalize_feed_versions.py', 'scripts/prune_conflicting_feed_packages.py') }}-
+            ax6600-ccache-${{ runner.os }}-
+
+      - name: Prepare compiler cache
+        run: |
+          mkdir -p "${CCACHE_DIR}"
+          ccache --set-config=max_size="${CCACHE_MAXSIZE}"
+          ccache --set-config=compiler_check="${CCACHE_COMPILERCHECK}"
+          ccache --zero-stats || true
 
       - name: Install script dependencies
         run: python -m pip install --upgrade pip -r scripts/requirements.txt
@@ -180,6 +201,7 @@ jobs:
               "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02",
               "CONFIG_TARGET_PROFILE",
               "CONFIG_TARGET_ROOTFS_INITRAMFS",
+              "CONFIG_CCACHE",
               "CONFIG_ATH11K_NSS_SUPPORT",
               "CONFIG_PACKAGE_MAC80211_NSS_SUPPORT",
               "CONFIG_NSS_FIRMWARE_VERSION_11_4",
@@ -257,6 +279,17 @@ jobs:
           pushd work/source
           make -j"$(nproc)" || make -j1 V=s
           popd
+
+      - name: Report compiler cache
+        if: always()
+        run: ccache -s || true
+
+      - name: Save compiler cache
+        if: always() && steps.restore-ccache-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ${{ steps.restore-ccache-cache.outputs.cache-primary-key }}
 
       - name: Sanitize APK repositories
         run: |
