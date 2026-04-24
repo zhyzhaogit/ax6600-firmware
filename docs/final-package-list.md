@@ -28,7 +28,6 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `wget-ssl`
 - `luci-i18n-base-zh-cn`
 - `luci-i18n-firewall-zh-cn`
-- `luci-i18n-ddns-zh-cn`
 - `luci-i18n-ddns-go-zh-cn`
 - `luci-i18n-autoreboot-zh-cn`
 - `luci-i18n-smartdns-zh-cn`
@@ -40,8 +39,6 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `luci-i18n-diskman-zh-cn`
 - `luci-i18n-dockerman-zh-cn`
 - `luci-i18n-netdata-zh-cn`
-- `luci-i18n-package-manager-zh-cn`
-- `luci-i18n-pbr-zh-cn`
 - `luci-i18n-samba4-zh-cn`
 - `luci-i18n-statistics-zh-cn`
 - `luci-i18n-ttyd-zh-cn`
@@ -63,8 +60,6 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `v2dat`
 - `adguardhome`
 - `luci-app-adguardhome`
-- `ddns-scripts`
-- `luci-app-ddns`
 - `ddns-go`
 - `luci-app-ddns-go`
 - `luci-app-autoreboot`
@@ -80,15 +75,11 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `netdata`
 - `luci-app-netdata`
 - `luci-app-statistics`
-- `luci-app-package-manager`
 
 ### Proxy Stack
 
 - `luci-app-openclash`
-- `luci-app-homeproxy`
 - `luci-app-passwall`
-- `pbr`
-- `luci-app-pbr`
 - PassWall runtime markers:
   - `CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=y`
   - `CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y`
@@ -123,8 +114,6 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `luci-app-diskman`
 - `samba4-server`
 - `luci-app-samba4`
-- `ksmbd-server`
-- `luci-app-ksmbd`
 
 ### USB Network Adapters
 
