@@ -57,13 +57,13 @@ That means the baseline release path is aimed at an opinionated AX6600 image wit
 
 - `zram-swap`
 - `luci-app-athena-led`
+- `luci-theme-argon`
 - `luci-app-openclash`
 - `luci-app-homeproxy`
 - `luci-app-passwall`
 - `smartdns`
 - `mosdns`
 - `adguardhome`
-- `tailscale`
 - `zerotier`
 - `luci-app-diskman`
 - `samba4-server`

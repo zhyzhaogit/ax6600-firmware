@@ -45,6 +45,7 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 
 - `zram-swap`
 - `luci-app-athena-led`
+- `luci-theme-argon`
 
 ### DNS / Daily Services
 
@@ -78,7 +79,6 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 
 ### Remote Connectivity
 
-- `tailscale`
 - `zerotier`
 - `luci-app-zerotier`
 

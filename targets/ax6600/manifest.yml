@@ -29,7 +29,7 @@ network_defaults:
   lan_ip: "10.0.0.1"
   ssid: "AX6600"
   wifi_password_hint: "set-after-flash"
-  theme: "bootstrap"
+  theme: "argon"
   luci_lang: "zh_cn"
 
 source_selection:

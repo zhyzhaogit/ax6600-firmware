@@ -79,7 +79,6 @@ profiles:
 
   connectivity:
     packages:
-      - "tailscale"
       - "zerotier"
       - "luci-app-zerotier"
 
