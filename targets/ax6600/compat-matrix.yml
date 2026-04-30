@@ -20,20 +20,25 @@ reference_state:
   reference-device-repo:
     repo: ones20250/Openwrt-AX6600
     branch: main
-    last_observed_commit: 889aeea663a2397f455fe0932e8340eac3d1f78b
-    last_compared_at: '2026-04-21'
+    last_observed_commit: 6562c8b315a13befa4172e0dbd1fd64156cfe31e
+    last_compared_at: '2026-04-30'
   reference-structure-repo:
     repo: ZqinKing/wrt_release
     branch: main
     last_observed_commit: dad214b4401be0c8dbeea460d8169cca834f649b
-    last_compared_at: '2026-04-21'
+    last_compared_at: '2026-04-30'
   source-upstream:
     repo: ones20250/immortalwrt_ipq
     branch: main
-    last_observed_commit: 66a342f2799676ec650675e5b156381eb1aee105
-    last_compared_at: '2026-04-21'
+    last_observed_commit: 26472fb8d8c16af4bd224270b8328b89e789f1db
+    last_compared_at: '2026-04-30'
   fallback-upstream:
     repo: immortalwrt/immortalwrt
     branch: master
-    last_observed_commit: 716d679e0f9e9c236bf3823740d3eb044d8967e2
-    last_compared_at: '2026-04-21'
+    last_observed_commit: 67008eee0baf0d94d6ce040fcd92fb3a7cc00879
+    last_compared_at: '2026-04-30'
+  source-primary:
+    repo: zhyzhaogit/ax6600-source
+    branch: ax6600-stable
+    last_observed_commit: 33de2be0eb62b6959c48d26b4b70376bf4d14d8c
+    last_compared_at: '2026-04-30'
