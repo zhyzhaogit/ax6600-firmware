@@ -11,6 +11,10 @@ if [[ ! -d "${SOURCE_DIR}" ]]; then
   exit 1
 fi
 
+# Convert to absolute paths to avoid path resolution issues
+SOURCE_DIR="$(cd "${SOURCE_DIR}" && pwd)"
+PATCH_DIR="$(cd "${PATCH_DIR}" && pwd)"
+
 if [[ -f "${FEEDS_FILE}" ]]; then
   touch "${SOURCE_DIR}/feeds.conf.default"
   while IFS= read -r line; do
