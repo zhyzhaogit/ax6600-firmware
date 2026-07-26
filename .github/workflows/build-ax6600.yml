@@ -109,7 +109,7 @@ jobs:
 
       - name: Restore download cache
         id: restore-download-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: cache/dl
           key: ax6600-dl-${{ runner.os }}-${{ hashFiles('feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'scripts/prepare_source_tree.sh') }}
@@ -118,7 +118,7 @@ jobs:
 
       - name: Restore compiler cache
         id: restore-ccache-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .ccache
           key: ax6600-ccache-${{ runner.os }}-${{ hashFiles('config/ax6600/**/*.config', 'feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'targets/ax6600/upstreams.yml', 'scripts/prepare_source_tree.sh', 'scripts/normalize_feed_versions.py', 'scripts/prune_conflicting_feed_packages.py') }}-${{ github.run_id }}
