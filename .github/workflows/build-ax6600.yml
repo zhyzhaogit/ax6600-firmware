@@ -83,7 +83,7 @@ jobs:
           curl --fail --silent --show-error --location \
             https://raw.githubusercontent.com/immortalwrt/build-scripts/04a39ca00d2cd6895c84e1c0670bc719cbd8d9fb/init_build_environment.sh \
             --output "${environment_script}"
-          echo "6b32b5b4667091aafb65240988831380818c6d8549f1ae45ee5249d93f26e3b7  ${environment_script}" | sha256sum --check
+          echo "85f4b2c2aa16f8178b57250f5d2bcf4a2e0707c6b569a3b07510f41fc6185dd8  ${environment_script}" | sha256sum --check
           sudo bash "${environment_script}"
           sudo -E apt -yqq install libfuse-dev ccache
           sudo -E apt -yqq autoremove --purge
