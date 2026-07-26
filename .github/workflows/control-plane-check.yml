@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
@@ -38,22 +38,11 @@ jobs:
           print(f"parsed {len(files)} yaml files")
           PY
 
-      - name: Compile helper scripts
-        run: |
-          python -m py_compile \
-            scripts/common.py \
-            scripts/assemble_config.py \
-            scripts/apply_package_overrides.py \
-            scripts/check_package_plan.py \
-            scripts/check_required_features.py \
-            scripts/check_baseline.py \
-            scripts/sync_watch.py \
-            scripts/config_diff.py \
-            scripts/render_release_metadata.py \
-            scripts/render_runtime_defaults.py \
-            scripts/sanitize_apk_repositories.py \
-            scripts/bootstrap_identity.py \
-            scripts/refresh_compat_matrix.py
+      - name: Compile helper scripts and tests
+        run: python -m compileall -q scripts tests
+
+      - name: Run control-plane unit tests
+        run: python -m unittest discover -s tests -v
 
       - name: Assemble baseline config
         run: |
@@ -89,15 +78,15 @@ jobs:
             --config-phase assembled \
             --output reports/package-plan-ci.md
 
-      - name: Validate baseline example metrics
+      - name: Validate baseline checker fixture
         run: |
           python scripts/check_baseline.py \
             --baseline benchmarks/baseline.yml \
             --metrics benchmarks/runtime-metrics.example.yml \
-            --output reports/baseline-ci.md
+            --output reports/baseline-fixture-ci.md
 
       - name: Upload validation artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: control-plane-check
           path: |
@@ -105,4 +94,4 @@ jobs:
             build/ax6600/runtime-overlay/etc/uci-defaults/99-ax6600-defaults
             reports/required-features-ci.md
             reports/package-plan-ci.md
-            reports/baseline-ci.md
+            reports/baseline-fixture-ci.md

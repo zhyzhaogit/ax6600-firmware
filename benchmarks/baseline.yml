@@ -41,4 +41,5 @@ stability_checks:
 
 validation_policy:
   allow_release_with_pending_runtime_checks: false
+  allow_prerelease_with_pending_runtime_checks: true
   fail_on_missing_metrics: true

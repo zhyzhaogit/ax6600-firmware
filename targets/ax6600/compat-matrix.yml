@@ -1,21 +1,22 @@
 version: 1
 current_selection:
-  source_key: source-upstream
-  source_repo: ones20250/immortalwrt_ipq
-  source_branch: main
+  source_key: source-primary
+  source_repo: zhyzhaogit/ax6600-source
+  source_branch: ax6600-stable
   release_channel: stable
 known_good:
-- id: bootstrap-2026-04-21
-  source_repo: ones20250/immortalwrt_ipq
-  source_branch: main
-  source_commit: bootstrap-pending
-  kernel_line: pending-detection
-  nss_firmware_version: '12.5'
+- id: build-29699825316-2026-07-20
+  source_repo: zhyzhaogit/ax6600-source
+  source_branch: ax6600-stable
+  source_commit: 33de2be0eb62b6959c48d26b4b70376bf4d14d8c
+  kernel_line: '6.12'
+  nss_firmware_version: '11.4'
   config_profile: IPQ60XX-WIFI-YES
   patch_set_version: firmware-layer-v1
-  build_status: planned
+  build_status: success
   runtime_validation_status: pending
-  notes: Bootstrap entry created from the initial architecture scaffold.
+  build_run_url: https://github.com/zhyzhaogit/ax6600-firmware/actions/runs/29699825316
+  notes: Build, required-feature, package-plan, and artifact gates passed. Hardware runtime qualification remains pending.
 reference_state:
   reference-device-repo:
     repo: ones20250/Openwrt-AX6600

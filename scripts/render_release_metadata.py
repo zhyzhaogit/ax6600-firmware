@@ -16,14 +16,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--package-plan", default="targets/ax6600/package-plan.yml")
     parser.add_argument("--source-repo", required=True)
     parser.add_argument("--source-branch", required=True)
+    parser.add_argument("--source-ref", default="")
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--optional-profiles", default="")
+    parser.add_argument("--package-overrides", default="")
     parser.add_argument(
         "--replace-default-optional-profiles",
         action="store_true",
         help="Do not include manifest release.default_optional_profiles in the reported profile set.",
     )
     parser.add_argument("--patch-set-version", default="firmware-layer-v1")
+    parser.add_argument("--provenance", default="", help="Optional JSON file containing resolved build provenance.")
     parser.add_argument("--output-json", default="dist/release/release-metadata.json")
     parser.add_argument("--output-md", default="dist/release/release-metadata.md")
     return parser.parse_args()
@@ -52,6 +55,16 @@ def main() -> int:
         if item not in merged_profiles:
             merged_profiles.append(item)
 
+    available_manifest_profiles = manifest.get("config_fragments", {}).get("optional_profiles", {})
+    available_plan_profiles = package_plan.get("profiles", {})
+    unknown_profiles = [
+        name
+        for name in merged_profiles
+        if name not in available_manifest_profiles or name not in available_plan_profiles
+    ]
+    if unknown_profiles:
+        raise SystemExit(f"Unknown optional profile(s): {', '.join(unknown_profiles)}")
+
     tz_name = manifest.get("release", {}).get("timezone", "UTC")
     local_generated_at = datetime.now(ZoneInfo(tz_name)).isoformat()
     source_commit_short = args.source_commit[:7]
@@ -72,12 +85,15 @@ def main() -> int:
         "source": {
             "repo": args.source_repo,
             "branch": args.source_branch,
+            "requested_ref": args.source_ref or args.source_branch,
             "commit": args.source_commit,
         },
         "release": manifest["release"],
         "network_defaults": manifest["network_defaults"],
         "config_profile": manifest["device"]["config_profile"],
         "optional_profiles": merged_profiles,
+        "replace_default_optional_profiles": args.replace_default_optional_profiles,
+        "package_overrides": args.package_overrides,
         "built_in_target_packages": built_in_packages,
         "enabled_profile_packages": enabled_profile_packages,
         "patch_set_version": args.patch_set_version,
@@ -86,6 +102,11 @@ def main() -> int:
         ),
         "known_good_reference": compat["known_good"][0]["id"],
     }
+    if args.provenance:
+        import json
+
+        provenance_path = REPO_ROOT / args.provenance
+        metadata["provenance"] = json.loads(provenance_path.read_text(encoding="utf-8"))
 
     profile_label = ", ".join(merged_profiles) if merged_profiles else "none"
     package_lines = [

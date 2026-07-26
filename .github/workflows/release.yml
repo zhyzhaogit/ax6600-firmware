@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       build_run_id:
-        description: "Successful Build AX6600 Firmware run id"
+        description: "Successful provenance-enabled Build AX6600 Firmware run id"
         required: true
       artifact_name:
         description: "Artifact name from the build run. Leave empty to auto-detect ax6600-firmware-<run_number>."
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Validate build run and resolve artifact name
         env:
@@ -69,6 +69,10 @@ jobs:
                   f"Build run {build_run_id} is not a successful completed run: "
                   f"status={run['status']} conclusion={run['conclusion']}"
               )
+          if run.get("name") != "Build AX6600 Firmware":
+              raise SystemExit(
+                  f"Run {build_run_id} is not a Build AX6600 Firmware run: name={run.get('name')!r}"
+              )
 
           artifact_name = artifact_name_input or f"ax6600-firmware-{run['run_number']}"
           release_name = os.environ["RELEASE_NAME_INPUT"].strip() or os.environ["RELEASE_TAG"]
@@ -85,6 +89,11 @@ jobs:
           )
           PY
 
+      - name: Prepare the build run control plane
+        run: |
+          git fetch --depth 1 origin "${BUILD_HEAD_SHA}"
+          git worktree add --detach build-control-plane "${BUILD_HEAD_SHA}"
+
       - name: Download build artifact bundle
         env:
           GH_TOKEN: ${{ github.token }}
@@ -99,6 +108,10 @@ jobs:
         run: |
           test -f release-input/dist/release/release-metadata.md
           test -f release-input/dist/release/release-metadata.json
+          if [ ! -f release-input/dist/release/build-provenance.json ]; then
+            echo "This build predates provenance-enabled release artifacts; rebuild it from its exact source ref." >&2
+            exit 1
+          fi
           test -f release-input/build/ax6600/final.config
 
           factory_count=$(find release-input/dist/firmware/factory -type f | wc -l)
@@ -108,13 +121,39 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve effective build selection
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          metadata = json.loads(Path("release-input/dist/release/release-metadata.json").read_text(encoding="utf-8"))
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as handle:
+              handle.write("EFFECTIVE_PROFILES=" + ",".join(metadata.get("optional_profiles", [])) + "\n")
+              handle.write("PACKAGE_OVERRIDES=" + metadata.get("package_overrides", "").replace("\n", " ") + "\n")
+          PY
+
       - name: Validate package plan in downloaded build
         run: |
-          python scripts/check_package_plan.py \
+          python build-control-plane/scripts/check_package_plan.py \
             --manifest targets/ax6600/manifest.yml \
             --package-plan targets/ax6600/package-plan.yml \
-            --config release-input/build/ax6600/final.config \
-            --output release-input/reports/package-plan-release.md
+            --config ../release-input/build/ax6600/final.config \
+            --optional-profiles "${EFFECTIVE_PROFILES}" \
+            --replace-default-optional-profiles \
+            --package-overrides="${PACKAGE_OVERRIDES}" \
+            --output ../release-input/reports/package-plan-release.md
+
+      - name: Validate release eligibility
+        run: |
+          EXTRA_ARGS=""
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            EXTRA_ARGS="--prerelease"
+          fi
+          python scripts/check_release_eligibility.py \
+            --metadata release-input/dist/release/release-metadata.json \
+            ${EXTRA_ARGS}
 
       - name: Render publish summary
         run: |
@@ -129,7 +168,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create or update GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ env.RESOLVED_RELEASE_NAME }}
@@ -141,6 +180,8 @@ jobs:
             release-input/dist/firmware/meta/**
             release-input/dist/release/release-metadata.json
             release-input/dist/release/release-metadata.md
+            release-input/dist/release/build-provenance.json
             release-input/build/ax6600/final.config
             release-input/reports/required-features-build.md
             release-input/reports/package-plan-release.md
+            release-input/reports/feed-patches-build.json

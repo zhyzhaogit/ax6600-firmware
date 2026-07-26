@@ -7,6 +7,10 @@ on:
         description: "Key from targets/ax6600/upstreams.yml"
         required: false
         default: "source-primary"
+      source_ref:
+        description: "Exact branch, tag, or commit to validate. Leave empty to use the configured branch."
+        required: false
+        default: ""
       optional_profiles:
         description: "Comma-separated optional profile keys"
         required: false
@@ -25,20 +29,35 @@ on:
         required: false
         type: boolean
         default: true
+      run_full_build:
+        description: "Run download and a complete non-publishing firmware build after validation"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: ax6600-canary-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   canary:
     runs-on: ubuntu-latest
+    env:
+      INPUT_SOURCE_KEY: ${{ inputs.source_key || 'source-primary' }}
+      INPUT_SOURCE_REF: ${{ inputs.source_ref || '' }}
+      INPUT_OPTIONAL_PROFILES: ${{ inputs.optional_profiles || '' }}
+      INPUT_REPLACE_DEFAULT_PROFILES: ${{ inputs.replace_default_optional_profiles || false }}
+      INPUT_PACKAGE_OVERRIDES: ${{ inputs.package_overrides || '' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
@@ -54,12 +73,12 @@ jobs:
       - name: Assemble config
         run: |
           EXTRA_ARGS=""
-          if [ "${{ inputs.replace_default_optional_profiles }}" = "true" ]; then
+          if [ "${INPUT_REPLACE_DEFAULT_PROFILES}" = "true" ]; then
             EXTRA_ARGS="--replace-default-optional-profiles"
           fi
           python scripts/assemble_config.py \
             --manifest targets/ax6600/manifest.yml \
-            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --optional-profiles "${INPUT_OPTIONAL_PROFILES}" \
             --output build/ax6600/.config \
             ${EXTRA_ARGS}
 
@@ -67,27 +86,15 @@ jobs:
         run: |
           python scripts/apply_package_overrides.py \
             --config build/ax6600/.config \
-            --overrides "${{ inputs.package_overrides }}"
+            --overrides="${INPUT_PACKAGE_OVERRIDES}"
 
       - name: Resolve source repository
         id: resolve-source
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import yaml
-
-          manifest = yaml.safe_load(Path("targets/ax6600/manifest.yml").read_text(encoding="utf-8"))
-          upstreams = yaml.safe_load(Path("targets/ax6600/upstreams.yml").read_text(encoding="utf-8"))
-          requested = "${{ inputs.source_key }}" or manifest["source_selection"]["bootstrap_upstream"]
-          entry = upstreams["repositories"].get(requested) or upstreams["repositories"][manifest["source_selection"]["bootstrap_upstream"]]
-          if requested == "source-primary" and not entry.get("enabled", False):
-              entry = upstreams["repositories"][manifest["source_selection"]["bootstrap_upstream"]]
-              requested = manifest["source_selection"]["bootstrap_upstream"]
-          with Path(Path.cwd() / "source.env").open("w", encoding="utf-8") as handle:
-              handle.write(f"SOURCE_KEY={requested}\n")
-              handle.write(f"SOURCE_REPO={entry['repo']}\n")
-              handle.write(f"SOURCE_BRANCH={entry['branch']}\n")
-          PY
+          python scripts/resolve_source.py \
+            --source-key "${INPUT_SOURCE_KEY}" \
+            --source-ref "${INPUT_SOURCE_REF}" \
+            --output source.env
           cat source.env >> "$GITHUB_ENV"
 
       - name: Validate required feature markers in assembled config
@@ -100,23 +107,19 @@ jobs:
       - name: Clone and prepare source tree
         if: inputs.run_defconfig == true
         run: |
-          git clone --depth 1 --branch "${SOURCE_BRANCH}" "https://github.com/${SOURCE_REPO}.git" work/source
+          bash scripts/clone_source.sh "${SOURCE_REPO}" "${SOURCE_REF}" work/source
+          echo "SOURCE_COMMIT=$(git -C work/source rev-parse HEAD)" >> "$GITHUB_ENV"
           bash scripts/prepare_source_tree.sh work/source feeds/custom.conf patches/firmware-layer build/ax6600/runtime-overlay
-          cp build/ax6600/.config work/source/.config
 
       - name: Run defconfig
         if: inputs.run_defconfig == true
         run: |
-          pushd work/source
-          ./scripts/feeds update -a
-          python "${GITHUB_WORKSPACE}/scripts/prune_conflicting_feed_packages.py" \
-            --source-root "$(pwd)" \
-            --report "${GITHUB_WORKSPACE}/reports/feed-conflicts-canary.md"
-          ./scripts/feeds install -a
-          ./scripts/feeds install -f -p mosdns mosdns luci-app-mosdns v2dat
-          python "${GITHUB_WORKSPACE}/scripts/normalize_feed_versions.py" --source-root "$(pwd)"
-          make defconfig
-          popd
+          bash scripts/prepare_defconfig.sh \
+            work/source \
+            build/ax6600/.config \
+            reports/feed-conflicts-canary.md \
+            reports/feed-patches-canary.md \
+            reports/feed-patches-canary.json
           cp work/source/.config build/ax6600/final.config
           diff -u build/ax6600/.config build/ax6600/final.config > reports/config.diff || true
 
@@ -128,11 +131,48 @@ jobs:
             --config build/ax6600/final.config \
             --output reports/required-features.md
 
+      - name: Validate package plan after defconfig
+        if: inputs.run_defconfig == true
+        run: |
+          EXTRA_ARGS=""
+          if [ "${INPUT_REPLACE_DEFAULT_PROFILES}" = "true" ]; then
+            EXTRA_ARGS="--replace-default-optional-profiles"
+          fi
+          python scripts/check_package_plan.py \
+            --manifest targets/ax6600/manifest.yml \
+            --package-plan targets/ax6600/package-plan.yml \
+            --config build/ax6600/final.config \
+            --optional-profiles "${INPUT_OPTIONAL_PROFILES}" \
+            --package-overrides="${INPUT_PACKAGE_OVERRIDES}" \
+            ${EXTRA_ARGS} \
+            --output reports/package-plan-canary.md
+
+      - name: Full non-publishing firmware build
+        if: inputs.run_defconfig == true && inputs.run_full_build == true
+        run: |
+          pushd work/source
+          make download -j8
+          make -j"$(nproc)" || make -j1 V=s
+          popd
+
       - name: Render release metadata
         run: |
           SOURCE_COMMIT="$(git -C work/source rev-parse HEAD 2>/dev/null || echo bootstrap-pending)"
+          PROVENANCE_ARGS=""
+          if [ -d work/source ] && [ -f build/ax6600/final.config ]; then
+            python scripts/collect_build_provenance.py \
+              --source-root work/source \
+              --source-repo "${SOURCE_REPO}" \
+              --source-branch "${SOURCE_BRANCH}" \
+              --source-ref "${SOURCE_REF}" \
+              --config build/ax6600/final.config \
+              --patch-root patches/firmware-layer \
+              --patch-report reports/feed-patches-canary.json \
+              --output dist/release/build-provenance.json
+            PROVENANCE_ARGS="--provenance dist/release/build-provenance.json"
+          fi
           EXTRA_ARGS=""
-          if [ "${{ inputs.replace_default_optional_profiles }}" = "true" ]; then
+          if [ "${INPUT_REPLACE_DEFAULT_PROFILES}" = "true" ]; then
             EXTRA_ARGS="--replace-default-optional-profiles"
           fi
           python scripts/render_release_metadata.py \
@@ -142,15 +182,18 @@ jobs:
             --package-plan targets/ax6600/package-plan.yml \
             --source-repo "${SOURCE_REPO}" \
             --source-branch "${SOURCE_BRANCH}" \
+            --source-ref "${SOURCE_REF}" \
             --source-commit "${SOURCE_COMMIT}" \
-            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --optional-profiles "${INPUT_OPTIONAL_PROFILES}" \
+            --package-overrides="${INPUT_PACKAGE_OVERRIDES}" \
             --patch-set-version firmware-layer-v1 \
+            ${PROVENANCE_ARGS} \
             ${EXTRA_ARGS} \
             --output-json dist/release/release-metadata.json \
             --output-md dist/release/release-metadata.md
 
       - name: Upload canary artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: canary-artifacts
           path: |
@@ -160,5 +203,9 @@ jobs:
             reports/required-features-prep.md
             reports/required-features.md
             reports/feed-conflicts-canary.md
+            reports/feed-patches-canary.md
+            reports/feed-patches-canary.json
+            reports/package-plan-canary.md
             dist/release/release-metadata.json
             dist/release/release-metadata.md
+            dist/release/build-provenance.json

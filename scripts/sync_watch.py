@@ -22,6 +22,7 @@ def main() -> int:
 
     rows: list[list[str]] = []
     updates: list[dict] = []
+    fetch_errors: list[dict[str, str]] = []
 
     for key, entry in upstreams["repositories"].items():
         if not entry.get("enabled", False):
@@ -55,6 +56,14 @@ def main() -> int:
                 ]
             )
         except Exception as exc:  # noqa: BLE001
+            fetch_errors.append(
+                {
+                    "key": key,
+                    "repo": entry["repo"],
+                    "branch": entry["branch"],
+                    "error": str(exc),
+                }
+            )
             rows.append(
                 [
                     key,
@@ -72,7 +81,11 @@ def main() -> int:
         markdown_table(["key", "repo", "branch", "latest", "previous", "status"], rows),
         "",
     ]
-    if updates:
+    if fetch_errors:
+        report_lines.append("## Degraded Run")
+        report_lines.append("")
+        report_lines.append("One or more upstreams could not be checked. This run must not be interpreted as no movement.")
+    elif updates:
         report_lines.append("## Recommended Next Step")
         report_lines.append("")
         report_lines.append("Open a review PR, regenerate config and diff reports, and run canary validation before merging.")
@@ -80,7 +93,14 @@ def main() -> int:
         report_lines.append("No tracked upstream moved relative to the compatibility matrix snapshot.")
 
     write_text(REPO_ROOT / args.output, "\n".join(report_lines) + "\n")
-    write_json(REPO_ROOT / args.json_output, {"updates": updates})
+    status = "degraded" if fetch_errors else "complete"
+    write_json(
+        REPO_ROOT / args.json_output,
+        {"status": status, "updates": updates, "fetch_errors": fetch_errors},
+    )
+    if fetch_errors:
+        print(f"Sync watch degraded: {len(fetch_errors)} upstream fetch error(s)")
+        return 1
     return 0
 
 

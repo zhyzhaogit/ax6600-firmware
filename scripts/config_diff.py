@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 from common import REPO_ROOT, github_raw, load_yaml, markdown_table, sha256_text, write_json, write_text
 
@@ -37,6 +36,7 @@ def main() -> int:
     protected_keywords = upstreams["policy"]["protected_keywords"]
     rows: list[list[str]] = []
     current: dict[str, dict[str, dict[str, str]]] = {}
+    fetch_errors: list[str] = []
 
     for key in upstreams["policy"]["default_compare_targets"]:
         entry = upstreams["repositories"][key]
@@ -51,14 +51,21 @@ def main() -> int:
                 current[key][watched_path] = {"sha256": digest, "category": category}
                 rows.append([key, watched_path, category, status])
             except Exception as exc:  # noqa: BLE001
-                current[key][watched_path] = {"sha256": "fetch-error", "category": "manual-review"}
-                rows.append([key, watched_path, "manual-review", f"fetch-error: {exc}"])
+                previous_entry = previous.get(key, {}).get(watched_path)
+                if previous_entry:
+                    current[key][watched_path] = previous_entry
+                else:
+                    current[key][watched_path] = {"sha256": "unknown", "category": "manual-review"}
+                fetch_errors.append(f"{key}:{watched_path}: {exc}")
+                rows.append([key, watched_path, current[key][watched_path]["category"], f"fetch-error: {exc}"])
 
     report = "\n".join(
         [
             "# Config Diff Report",
             "",
             markdown_table(["reference", "path", "classification", "status"], rows),
+            "",
+            f"Run status: **{'degraded' if fetch_errors else 'complete'}**.",
             "",
             "Classification guide:",
             "",
@@ -73,6 +80,11 @@ def main() -> int:
 
     write_text(REPO_ROOT / args.output, report)
     write_json(state_path, current)
+    if fetch_errors:
+        print("Config diff degraded:")
+        for error in fetch_errors:
+            print(f"- {error}")
+        return 1
     return 0
 
 

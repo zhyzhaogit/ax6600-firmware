@@ -1,3 +1,5 @@
+# Parser fixture only. These values are synthetic and must never be used as
+# measured release evidence for a firmware artifact.
 performance_targets:
   nat_throughput_mbps: 1820
   lan_wan_forwarding_mbps: 1795

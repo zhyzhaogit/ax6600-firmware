@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
+from apply_package_overrides import normalize_overrides
 from common import REPO_ROOT, load_yaml, markdown_table, write_text
 
 
@@ -17,6 +18,17 @@ def parse_args() -> argparse.Namespace:
         choices=("assembled", "final"),
         default="final",
         help="Use 'assembled' for pre-feed baseline configs and 'final' for post-defconfig validation.",
+    )
+    parser.add_argument("--optional-profiles", default="", help="Comma-separated optional profiles selected for this build.")
+    parser.add_argument(
+        "--replace-default-optional-profiles",
+        action="store_true",
+        help="Validate only explicitly selected optional profiles.",
+    )
+    parser.add_argument(
+        "--package-overrides",
+        default="",
+        help="Package overrides applied to this build; disabled packages are excluded from required evidence.",
     )
     return parser.parse_args()
 
@@ -89,6 +101,22 @@ def main() -> int:
 
     manifest_defaults = manifest.get("release", {}).get("default_optional_profiles", [])
     plan_defaults = plan.get("default_enabled_profiles", [])
+    selected_profiles = [item.strip() for item in args.optional_profiles.split(",") if item.strip()]
+    effective_profiles = [] if args.replace_default_optional_profiles else list(manifest_defaults)
+    for profile_name in selected_profiles:
+        if profile_name not in effective_profiles:
+            effective_profiles.append(profile_name)
+
+    available_manifest_profiles = manifest.get("config_fragments", {}).get("optional_profiles", {})
+    unknown_profiles = [
+        name for name in effective_profiles if name not in available_manifest_profiles or name not in plan.get("profiles", {})
+    ]
+    if unknown_profiles:
+        raise SystemExit(f"Unknown optional profile(s): {', '.join(unknown_profiles)}")
+
+    disabled_packages = {
+        name for mode, name in normalize_overrides(args.package_overrides) if mode == "disable"
+    }
 
     rows: list[list[str]] = []
     failures: list[str] = []
@@ -106,16 +134,20 @@ def main() -> int:
     else:
         rows.append(["defaults", "manifest/package-plan alignment", "pass", ", ".join(manifest_defaults)])
 
-    for profile_name in plan_defaults:
+    for profile_name in effective_profiles:
         profile = plan["profiles"][profile_name]
         for package in profile.get("packages", []):
+            package_name = item_name(package)
+            if package_name in disabled_packages:
+                rows.append([profile_name, package_name, "skip", "disabled by package override"])
+                continue
             status, evidence = evaluate_item(package, config_text, args.config_phase)
             if status == "fail":
                 if item_required(package):
-                    failures.append(item_name(package))
+                    failures.append(package_name)
                 else:
                     status = "warn"
-            rows.append([profile_name, item_name(package), status, evidence_text(evidence)])
+            rows.append([profile_name, package_name, status, evidence_text(evidence)])
         for marker in profile.get("config_markers", []):
             if args.config_phase == "assembled":
                 rows.append([profile_name, marker, "skip", "deferred until final config validation"])
@@ -136,6 +168,8 @@ def main() -> int:
             "# Package Plan Check",
             "",
             f"- config phase: `{args.config_phase}`",
+            f"- effective profiles: `{', '.join(effective_profiles) if effective_profiles else 'none'}`",
+            f"- disabled overrides: `{', '.join(sorted(disabled_packages)) if disabled_packages else 'none'}`",
             f"- note: {phase_note}",
             "",
             markdown_table(["profile", "item", "status", "evidence"], rows),

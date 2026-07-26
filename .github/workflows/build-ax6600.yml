@@ -14,6 +14,10 @@ on:
         description: "Key from targets/ax6600/upstreams.yml"
         required: false
         default: "source-primary"
+      source_ref:
+        description: "Exact branch, tag, or commit to build. Leave empty to use the configured branch."
+        required: false
+        default: ""
       optional_profiles:
         description: "Extra optional profiles to add"
         required: false
@@ -49,6 +53,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ax6600-build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -57,6 +65,11 @@ jobs:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 2G
       CCACHE_COMPILERCHECK: content
+      INPUT_SOURCE_KEY: ${{ inputs.source_key || 'source-primary' }}
+      INPUT_SOURCE_REF: ${{ inputs.source_ref || '' }}
+      INPUT_OPTIONAL_PROFILES: ${{ inputs.optional_profiles || '' }}
+      INPUT_REPLACE_DEFAULT_PROFILES: ${{ inputs.replace_default_optional_profiles || false }}
+      INPUT_PACKAGE_OVERRIDES: ${{ inputs.package_overrides || '' }}
 
     steps:
       - name: Free disk space
@@ -66,24 +79,29 @@ jobs:
 
       - name: Build environment setup
         run: |
-          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          environment_script=/tmp/immortalwrt-init-build-environment.sh
+          curl --fail --silent --show-error --location \
+            https://raw.githubusercontent.com/immortalwrt/build-scripts/04a39ca00d2cd6895c84e1c0670bc719cbd8d9fb/init_build_environment.sh \
+            --output "${environment_script}"
+          echo "6b32b5b4667091aafb65240988831380818c6d8549f1ae45ee5249d93f26e3b7  ${environment_script}" | sha256sum --check
+          sudo bash "${environment_script}"
           sudo -E apt -yqq install libfuse-dev ccache
           sudo -E apt -yqq autoremove --purge
           sudo -E apt -yqq autoclean
           sudo -E apt -yqq clean
 
       - name: Maximize build space
-        uses: easimon/maximize-build-space@v10
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c # v10
         with:
           root-reserve-mb: 1024
           temp-reserve-mb: 100
           swap-size-mb: 1024
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -91,7 +109,7 @@ jobs:
 
       - name: Restore download cache
         id: restore-download-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: cache/dl
           key: ax6600-dl-${{ runner.os }}-${{ hashFiles('feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'scripts/prepare_source_tree.sh') }}
@@ -100,7 +118,7 @@ jobs:
 
       - name: Restore compiler cache
         id: restore-ccache-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .ccache
           key: ax6600-ccache-${{ runner.os }}-${{ hashFiles('config/ax6600/**/*.config', 'feeds/custom.conf', 'targets/ax6600/manifest.yml', 'targets/ax6600/package-plan.yml', 'targets/ax6600/upstreams.yml', 'scripts/prepare_source_tree.sh', 'scripts/normalize_feed_versions.py', 'scripts/prune_conflicting_feed_packages.py') }}-${{ github.run_id }}
@@ -127,12 +145,12 @@ jobs:
       - name: Assemble config
         run: |
           EXTRA_ARGS=""
-          if [ "${{ inputs.replace_default_optional_profiles }}" = "true" ]; then
+          if [ "${INPUT_REPLACE_DEFAULT_PROFILES}" = "true" ]; then
             EXTRA_ARGS="--replace-default-optional-profiles"
           fi
           python scripts/assemble_config.py \
             --manifest targets/ax6600/manifest.yml \
-            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --optional-profiles "${INPUT_OPTIONAL_PROFILES}" \
             --output build/ax6600/.config \
             ${EXTRA_ARGS}
 
@@ -140,31 +158,20 @@ jobs:
         run: |
           python scripts/apply_package_overrides.py \
             --config build/ax6600/.config \
-            --overrides "${{ inputs.package_overrides }}"
+            --overrides="${INPUT_PACKAGE_OVERRIDES}"
 
       - name: Resolve source repository
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import yaml
-
-          manifest = yaml.safe_load(Path("targets/ax6600/manifest.yml").read_text(encoding="utf-8"))
-          upstreams = yaml.safe_load(Path("targets/ax6600/upstreams.yml").read_text(encoding="utf-8"))
-          requested = "${{ inputs.source_key }}" or manifest["source_selection"]["bootstrap_upstream"]
-          entry = upstreams["repositories"].get(requested) or upstreams["repositories"][manifest["source_selection"]["bootstrap_upstream"]]
-          if requested == "source-primary" and not entry.get("enabled", False):
-              entry = upstreams["repositories"][manifest["source_selection"]["bootstrap_upstream"]]
-              requested = manifest["source_selection"]["bootstrap_upstream"]
-          with Path("source.env").open("w", encoding="utf-8") as handle:
-              handle.write(f"SOURCE_KEY={requested}\n")
-              handle.write(f"SOURCE_REPO={entry['repo']}\n")
-              handle.write(f"SOURCE_BRANCH={entry['branch']}\n")
-          PY
+          python scripts/resolve_source.py \
+            --source-key "${INPUT_SOURCE_KEY}" \
+            --source-ref "${INPUT_SOURCE_REF}" \
+            --output source.env
           cat source.env >> "$GITHUB_ENV"
 
       - name: Clone and prepare source tree
         run: |
-          git clone --depth 1 --branch "${SOURCE_BRANCH}" "https://github.com/${SOURCE_REPO}.git" work/source
+          bash scripts/clone_source.sh "${SOURCE_REPO}" "${SOURCE_REF}" work/source
+          echo "SOURCE_COMMIT=$(git -C work/source rev-parse HEAD)" >> "$GITHUB_ENV"
           bash scripts/prepare_source_tree.sh work/source feeds/custom.conf patches/firmware-layer build/ax6600/runtime-overlay
           mkdir -p "${GITHUB_WORKSPACE}/cache/dl"
           rm -rf work/source/dl
@@ -172,46 +179,12 @@ jobs:
 
       - name: Update feeds and defconfig
         run: |
-          pushd work/source
-          ./scripts/feeds update -a
-          python "${GITHUB_WORKSPACE}/scripts/prune_conflicting_feed_packages.py" \
-            --source-root "$(pwd)" \
-            --report "${GITHUB_WORKSPACE}/reports/feed-conflicts-build.md"
-          ./scripts/feeds install -a
-          ./scripts/feeds install -f -p mosdns mosdns luci-app-mosdns v2dat
-          python "${GITHUB_WORKSPACE}/scripts/normalize_feed_versions.py" --source-root "$(pwd)"
-          # Apply feed package patches after feeds are installed
-          PATCH_DIR="${GITHUB_WORKSPACE}/patches/firmware-layer"
-          if [[ -d "${PATCH_DIR}/feed-packages" ]]; then
-            echo "Applying feed package patches..."
-            while IFS= read -r -d '' patch_file; do
-              rel_path="${patch_file#${PATCH_DIR}/feed-packages/}"
-              feed_name="${rel_path%%/*}"
-              remaining="${rel_path#*/}"
-              package_name="${remaining%%/*}"
-              case "${feed_name}" in
-                packages) target_dir="feeds/packages" ;;
-                luci) target_dir="feeds/luci" ;;
-                routing) target_dir="feeds/routing" ;;
-                telephony) target_dir="feeds/telephony" ;;
-                video) target_dir="feeds/video" ;;
-                *) echo "Warning: Unknown feed '${feed_name}', skipping"; continue ;;
-              esac
-              pkg_dir=$(find "${target_dir}" -type d -name "${package_name}" 2>/dev/null | head -1)
-              if [[ -z "${pkg_dir}" ]]; then
-                echo "Warning: Package '${package_name}' not found in '${feed_name}', skipping"
-                continue
-              fi
-              echo "Applying patch to ${feed_name}/${package_name}: $(basename "${patch_file}")"
-              (cd "${pkg_dir}" && patch -p1 < "${patch_file}") || echo "Warning: Failed to apply: ${patch_file}"
-            done < <(find "${PATCH_DIR}/feed-packages" -type f -name '*.patch' -print0 | sort -z)
-          fi
-          # Apply the assembled package selections only after feeds are installed.
-          # Otherwise feed-provided symbols are still unknown and can be pruned
-          # before defconfig sees the intended package plan.
-          cp "${GITHUB_WORKSPACE}/build/ax6600/.config" .config
-          make defconfig
-          popd
+          bash scripts/prepare_defconfig.sh \
+            work/source \
+            build/ax6600/.config \
+            reports/feed-conflicts-build.md \
+            reports/feed-patches-build.md \
+            reports/feed-patches-build.json
           cp work/source/.config build/ax6600/final.config
 
       - name: Render defconfig focus report
@@ -267,15 +240,22 @@ jobs:
 
       - name: Validate package plan after defconfig
         run: |
+          EXTRA_ARGS=""
+          if [ "${INPUT_REPLACE_DEFAULT_PROFILES}" = "true" ]; then
+            EXTRA_ARGS="--replace-default-optional-profiles"
+          fi
           python scripts/check_package_plan.py \
             --manifest targets/ax6600/manifest.yml \
             --package-plan targets/ax6600/package-plan.yml \
             --config build/ax6600/final.config \
+            --optional-profiles "${INPUT_OPTIONAL_PROFILES}" \
+            --package-overrides="${INPUT_PACKAGE_OVERRIDES}" \
+            ${EXTRA_ARGS} \
             --output reports/package-plan-build.md
 
       - name: Upload defconfig debug snapshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ax6600-defconfig-${{ github.run_number }}
           path: |
@@ -285,6 +265,8 @@ jobs:
             reports/required-features-build.md
             reports/package-plan-build.md
             reports/feed-conflicts-build.md
+            reports/feed-patches-build.md
+            reports/feed-patches-build.json
           if-no-files-found: warn
 
       - name: Download sources
@@ -295,7 +277,7 @@ jobs:
 
       - name: Save download cache
         if: always() && steps.restore-download-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: cache/dl
           key: ${{ steps.restore-download-cache.outputs.cache-primary-key }}
@@ -312,23 +294,42 @@ jobs:
 
       - name: Save compiler cache
         if: success() && steps.restore-ccache-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .ccache
           key: ${{ steps.restore-ccache-cache.outputs.cache-primary-key }}
 
-      - name: Sanitize APK repositories
+      - name: Verify embedded APK repository policy
         run: |
-          python scripts/sanitize_apk_repositories.py \
-            --source-root work/source \
-            --report reports/apk-repositories-build.md
+          runtime_script="$(find work/source/build_dir -type f -path '*/root-*/etc/uci-defaults/99-ax6600-defaults' -print -quit)"
+          if [ -z "${runtime_script}" ]; then
+            echo "Embedded AX6600 runtime defaults were not found in the built rootfs." >&2
+            exit 1
+          fi
+          grep -F 'LOCAL_ONLY_FEEDS=' "${runtime_script}"
+          grep -F '/etc/apk/repositories.d/distfeeds.list' "${runtime_script}"
+          {
+            echo "# APK Repository Policy"
+            echo
+            echo "- embedded runtime policy: ${runtime_script}"
+            echo "- local-only custom feeds are disabled on first boot"
+          } > reports/apk-repositories-build.md
 
       - name: Collect firmware artifacts
         run: |
           bash scripts/collect_firmware_artifacts.sh work/source dist/firmware
-          SOURCE_COMMIT="$(git -C work/source rev-parse HEAD)"
+          python scripts/collect_build_provenance.py \
+            --source-root work/source \
+            --source-repo "${SOURCE_REPO}" \
+            --source-branch "${SOURCE_BRANCH}" \
+            --source-ref "${SOURCE_REF}" \
+            --config build/ax6600/final.config \
+            --patch-root patches/firmware-layer \
+            --patch-report reports/feed-patches-build.json \
+            --artifact-root dist/firmware \
+            --output dist/release/build-provenance.json
           EXTRA_ARGS=""
-          if [ "${{ inputs.replace_default_optional_profiles }}" = "true" ]; then
+          if [ "${INPUT_REPLACE_DEFAULT_PROFILES}" = "true" ]; then
             EXTRA_ARGS="--replace-default-optional-profiles"
           fi
           python scripts/render_release_metadata.py \
@@ -338,15 +339,18 @@ jobs:
             --package-plan targets/ax6600/package-plan.yml \
             --source-repo "${SOURCE_REPO}" \
             --source-branch "${SOURCE_BRANCH}" \
+            --source-ref "${SOURCE_REF}" \
             --source-commit "${SOURCE_COMMIT}" \
-            --optional-profiles "${{ inputs.optional_profiles }}" \
+            --optional-profiles "${INPUT_OPTIONAL_PROFILES}" \
+            --package-overrides="${INPUT_PACKAGE_OVERRIDES}" \
             --patch-set-version firmware-layer-v1 \
+            --provenance dist/release/build-provenance.json \
             ${EXTRA_ARGS} \
             --output-json dist/release/release-metadata.json \
             --output-md dist/release/release-metadata.md
 
       - name: Upload firmware artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ax6600-firmware-${{ github.run_number }}
           path: |
@@ -355,10 +359,13 @@ jobs:
             dist/firmware/meta/**
             dist/release/release-metadata.json
             dist/release/release-metadata.md
+            dist/release/build-provenance.json
             build/ax6600/final.config
             reports/required-features-build.md
             reports/package-plan-build.md
             reports/feed-conflicts-build.md
+            reports/feed-patches-build.md
+            reports/feed-patches-build.json
             reports/apk-repositories-build.md
 
       - name: Render build summary
@@ -406,9 +413,22 @@ jobs:
             echo "RELEASE_PRERELEASE=${prerelease}"
           } >> "${GITHUB_ENV}"
 
+      - name: Validate release eligibility
+        if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        run: |
+          EXTRA_ARGS=""
+          if [ "${GITHUB_REF}" = "refs/heads/main" ] && [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            EXTRA_ARGS="--prerelease"
+          elif [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${{ inputs.prerelease }}" = "true" ]; then
+            EXTRA_ARGS="--prerelease"
+          fi
+          python scripts/check_release_eligibility.py \
+            --metadata dist/release/release-metadata.json \
+            ${EXTRA_ARGS}
+
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/ax6600-') || (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_NAME }}
@@ -420,6 +440,8 @@ jobs:
             dist/firmware/meta/**
             dist/release/release-metadata.json
             dist/release/release-metadata.md
+            dist/release/build-provenance.json
             build/ax6600/final.config
             reports/required-features-build.md
             reports/package-plan-build.md
+            reports/feed-patches-build.json

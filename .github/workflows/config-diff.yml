@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
@@ -31,11 +31,11 @@ jobs:
         run: |
           python scripts/config_diff.py \
             --upstreams targets/ax6600/upstreams.yml \
-            --state reports/reference-state.json \
+            --state targets/ax6600/reference-state.json \
             --output reports/config-diff.md
 
       - name: Create review PR
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6
         with:
           branch: "bot/config-diff"
           title: "chore: refresh reference diff state"
@@ -54,9 +54,11 @@ jobs:
             Not-tested: Actual absorption into source or firmware layers
 
       - name: Upload report artifact
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: config-diff-report
           path: |
             reports/config-diff.md
-            reports/reference-state.json
+            targets/ax6600/reference-state.json
+          if-no-files-found: warn
