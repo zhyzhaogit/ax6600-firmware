@@ -27,7 +27,7 @@ python "${REPO_ROOT}/scripts/prune_conflicting_feed_packages.py" \
   --source-root "${SOURCE_DIR}" \
   --report "${CONFLICT_REPORT}"
 ./scripts/feeds install -a
-./scripts/feeds install -f -p mosdns mosdns luci-app-mosdns v2dat
+./scripts/feeds install -f -p mosdns mosdns luci-app-mosdns geo2txt
 python "${REPO_ROOT}/scripts/normalize_feed_versions.py" --source-root "${SOURCE_DIR}"
 python "${REPO_ROOT}/scripts/apply_feed_patches.py" \
   --source-root "${SOURCE_DIR}" \

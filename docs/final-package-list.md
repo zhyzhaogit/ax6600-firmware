@@ -57,7 +57,7 @@ These are already referenced by the `jdcloud_re-cs-02` device definition in the 
 - `luci-app-smartdns`
 - `mosdns`
 - `luci-app-mosdns`
-- `v2dat`
+- `geo2txt`
 - `adguardhome`
 - `luci-app-adguardhome`
 - `ddns-go`

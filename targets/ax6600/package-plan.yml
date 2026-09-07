@@ -75,7 +75,7 @@ profiles:
           - "CONFIG_FEED_mosdns=y"
           - "CONFIG_PACKAGE_luci-app-mosdns=y"
       - "luci-app-mosdns"
-      - "v2dat"
+      - "geo2txt"
       - "adguardhome"
       - "luci-app-adguardhome"
       - "ddns-go"
