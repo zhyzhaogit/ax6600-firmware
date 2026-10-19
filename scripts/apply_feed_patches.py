@@ -39,22 +39,23 @@ def package_directory(source_root: Path, feed: str, package: str) -> Path:
 
 
 def patch_state(package_dir: Path, patch_file: Path) -> str:
+    # --batch alone may silently reverse an already-applied patch.
     forward = subprocess.run(
-        ["patch", "--dry-run", "--batch", "-p1", "-i", str(patch_file)],
+        ["patch", "--dry-run", "--batch", "--forward", "-p1", "-i", str(patch_file)],
         cwd=package_dir,
         capture_output=True,
         text=True,
     )
     if forward.returncode == 0:
         subprocess.run(
-            ["patch", "--batch", "-p1", "-i", str(patch_file)],
+            ["patch", "--batch", "--forward", "-p1", "-i", str(patch_file)],
             cwd=package_dir,
             check=True,
         )
         return "applied"
 
     reverse = subprocess.run(
-        ["patch", "--dry-run", "--batch", "-R", "-p1", "-i", str(patch_file)],
+        ["patch", "--dry-run", "--force", "-R", "-p1", "-i", str(patch_file)],
         cwd=package_dir,
         capture_output=True,
         text=True,

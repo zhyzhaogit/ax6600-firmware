@@ -23,6 +23,19 @@ Supported feed names:
 
 ## Active Patches
 
+### miniupnpd
+
+- `0001-refresh-patches-for-2.3.11.patch`: Backport
+  [immortalwrt/packages PR #2001](https://github.com/immortalwrt/packages/pull/2001)
+  at commit `11ebc02d3914b5b3e05c964ac1d21f7e5b8cd6be` (yuayu).
+  - Remove `020-descr-filter-fix.patch` and `030-allow-private-fix.patch` because
+    MiniUPnPd 2.3.11 already contains their fixes.
+  - Refresh `040-improve-logging.patch`; retain `010` and `900`.
+  - Keep MiniUPnPd 2.3.11 and its security fixes instead of downgrading the feed.
+  - Once the feed carries this change, the helper must report `already-applied`.
+    Recheck or retire this backport if upstream refreshes these files differently;
+    incompatible changes must stop preparation rather than be ignored.
+
 ### netdata
 
 - `0001-disable-cloud-aclk.patch`: Disable Netdata Cloud (ACLK) to fix protobuf/absl API incompatibility
