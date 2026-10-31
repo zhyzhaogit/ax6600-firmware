@@ -1,1 +1,42 @@
-{}
+{
+  "reference-device-repo": {
+    "README.md": {
+      "sha256": "7f8a195a4090fe6d6d28a68643c9e956d3b9f4f03464f5069dfd22f206528167",
+      "category": "blocked"
+    },
+    ".github/workflows/QCA-ALL.yml": {
+      "sha256": "771bbd71422265be28302b30440e45e4cdba441b00de9f70958315ffa8b4dd6b",
+      "category": "workflow-absorb"
+    },
+    "Scripts/Packages.sh": {
+      "sha256": "c58a8ecec9524c59b17ab9522881222d239fccc775c37964047b83d64e8c90d2",
+      "category": "ai-review"
+    },
+    "Scripts/Settings.sh": {
+      "sha256": "c36328449bff83171a4cc07b40c3e911b8b5c53263451508cfb34e913069460e",
+      "category": "ai-review"
+    },
+    "Config/IPQ60XX-WIFI-YES.txt": {
+      "sha256": "686556f83867d59250756c618263813406d7f62b1e5808d52c97a89acb82b8fa",
+      "category": "config-absorb"
+    }
+  },
+  "reference-structure-repo": {
+    "README.md": {
+      "sha256": "9d5bc8f68672f6108b7547cea51c01b20051d7011511d8678c8e71dd150b5589",
+      "category": "manual-review"
+    },
+    ".github/workflows/build_wrt.yml": {
+      "sha256": "fac2a9e1925044e7ba05a677bf4bdbdb857175528486f421fcf6ca9ac727fd9f",
+      "category": "workflow-absorb"
+    },
+    "wrt_core/pre_clone_action.sh": {
+      "sha256": "02686ab849ffff0048fdea561c076631b52b69717359bedaf15ed142ecc5b5c6",
+      "category": "manual-review"
+    },
+    "wrt_core/compilecfg/jdcloud_ipq60xx_immwrt.ini": {
+      "sha256": "c39f44307e8baf83eae6c6ae16d474161ec8cd9e9c041afad1480d467600689f",
+      "category": "manual-review"
+    }
+  }
+}
